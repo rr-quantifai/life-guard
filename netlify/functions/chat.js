@@ -18,16 +18,18 @@ exports.handler = async (event) => {
   try {
     const { messages, systemPrompt, imageData } = JSON.parse(event.body);
 
-    // If an image was uploaded (passport check), attach it to the last user message
     let apiMessages = messages.map(m => ({ ...m }));
     if (imageData && apiMessages.length > 0) {
       const last = apiMessages[apiMessages.length - 1];
       if (last.role === 'user') {
+        const isPDF = imageData.mediaType === 'application/pdf';
         apiMessages[apiMessages.length - 1] = {
           role: 'user',
           content: [
             { type: 'text', text: typeof last.content === 'string' ? last.content : JSON.stringify(last.content) },
-            { type: 'image', source: { type: 'base64', media_type: imageData.mediaType, data: imageData.base64 } }
+            isPDF
+              ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: imageData.base64 } }
+              : { type: 'image',    source: { type: 'base64', media_type: imageData.mediaType,  data: imageData.base64 } }
           ]
         };
       }
