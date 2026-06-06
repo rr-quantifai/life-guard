@@ -7,11 +7,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0A0A0A;--s1:#111;--s2:#191919;--s3:#222;--s4:#2C2C2C;
-  --a:#00D4A0;--ad:#00A87D;--aa:rgba(0,212,160,.13);
-  --tx:#F0F0F0;--t2:#969696;--t3:#505050;
-  --red:#FF4455;--gold:#F5A623;
-  --bb:#131D1A;--bd:#272727;
+  --bg:#F5F7FB;--s1:#FFFFFF;--s2:#EDF0F8;--s3:#E2E6F2;--s4:#CDD3E8;
+  --a:#0BAF88;--ad:#089070;--aa:rgba(11,175,136,.10);
+  --tx:#1C2237;--t2:#4A5272;--t3:#98A3C0;
+  --red:#DC3545;--gold:#9A6400;
+  --bb:#FFFFFF;--bd:#D5DAF0;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{height:100%;-webkit-tap-highlight-color:transparent}
@@ -24,43 +24,45 @@ body{height:100%;background:var(--bg);color:var(--tx);font-family:'Inter',ui-san
 #msgs::-webkit-scrollbar-thumb{background:var(--s4);border-radius:2px}
 .row{display:flex;align-items:flex-end;gap:8px;animation:pop .22s ease}
 .row.u{justify-content:flex-end}
-.av{width:28px;height:28px;border-radius:50%;background:var(--aa);border:1.5px solid var(--a);display:grid;place-items:center;flex-shrink:0}
-.av svg{width:13px;height:13px;fill:var(--a)}
+.av{width:28px;height:28px;border-radius:50%;background:var(--aa);border:1.5px solid var(--a);display:grid;place-items:center;flex-shrink:0;color:var(--a)}
+.av svg{width:13px;height:13px}
 .bbl{max-width:80%;padding:10px 14px;border-radius:14px;font-size:14px;line-height:1.6}
-.row:not(.u) .bbl{background:var(--bb);border:1px solid var(--bd);border-bottom-left-radius:3px}
+.row:not(.u) .bbl{background:var(--bb);border:1px solid var(--bd);border-bottom-left-radius:3px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
 .row.u .bbl{background:var(--a);color:#0A1A15;font-weight:500;border-bottom-right-radius:3px}
 .comp{margin-left:36px;margin-bottom:4px;animation:pop .22s ease}
 
 /* ── typing ── */
 #typing{display:none;align-items:flex-end;gap:8px;padding:0 14px 6px}
-.tdots{background:var(--bb);border:1px solid var(--bd);border-radius:14px;border-bottom-left-radius:3px;padding:10px 14px;display:flex;gap:5px;align-items:center}
-.tdot{width:6px;height:6px;background:var(--t3);border-radius:50%;animation:bnc 1.2s infinite}
+.tdots{background:var(--bb);border:1px solid var(--bd);border-radius:14px;border-bottom-left-radius:3px;padding:10px 14px;display:flex;gap:5px;align-items:center;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.tdot{width:6px;height:6px;background:var(--s4);border-radius:50%;animation:bnc 1.2s infinite}
 .tdot:nth-child(2){animation-delay:.2s}.tdot:nth-child(3){animation-delay:.4s}
 
 /* ── input bar ── */
 #bar{padding:10px 12px;padding-bottom:max(14px,env(safe-area-inset-bottom));background:var(--bg);border-top:1px solid var(--bd)}
-#bri{display:flex;align-items:flex-end;gap:8px;background:var(--s2);border:1.5px solid var(--bd);border-radius:22px;padding:7px 7px 7px 14px;transition:border-color .2s}
+#bri{display:flex;align-items:center;gap:8px;background:var(--s1);border:1.5px solid var(--bd);border-radius:22px;padding:7px 7px 7px 14px;transition:border-color .2s;box-shadow:0 1px 3px rgba(0,0,0,.04)}
 #bri:focus-within{border-color:var(--a)}
 #inp{flex:1;background:none;border:none;outline:none;color:var(--tx);font:inherit;resize:none;max-height:90px;min-height:20px;line-height:1.4}
 #inp::placeholder{color:var(--t3)}
-#snd{width:32px;height:32px;border-radius:50%;background:var(--a);border:none;cursor:pointer;display:grid;place-items:center;flex-shrink:0;transition:background .2s,transform .1s}
+#snd{width:32px;height:32px;border-radius:50%;background:var(--a);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .2s,transform .1s;color:#fff}
 #snd:hover{background:var(--ad)}#snd:active{transform:scale(.94)}
 #snd:disabled{background:var(--s4);cursor:default}
-#snd svg{width:14px;height:14px;fill:var(--bg)}
+#snd svg{width:14px;height:14px}
 
 /* ── card base ── */
-.card{background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:17px}
-.card.done{opacity:.38;pointer-events:none}
-.ctag{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--a);margin-bottom:13px}
+.card{background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:17px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.card.done{opacity:.35;pointer-events:none}
+.ctag{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ad);margin-bottom:13px;display:flex;align-items:center;gap:6px}
 
 /* ── edit link ── */
-.edit-link{display:none;width:100%;padding:7px;background:none;border:none;color:var(--t3);font:11px 'Inter',ui-sans-serif,sans-serif;cursor:pointer;text-align:center;margin-top:3px;transition:color .2s}
+.edit-link{display:none;width:100%;padding:7px;background:none;border:none;color:var(--t3);font:11px 'Inter',ui-sans-serif,sans-serif;cursor:pointer;align-items:center;justify-content:center;gap:5px;margin-top:3px;transition:color .2s}
 .edit-link:hover{color:var(--a)}
 
 /* ── plan options ── */
 .plans{display:flex;flex-direction:column;gap:9px}
-.po{background:var(--s2);border:1.5px solid var(--bd);border-radius:12px;padding:13px 14px;cursor:pointer;text-align:left;width:100%;transition:border-color .2s,background .2s}
+.po{display:flex;align-items:center;gap:12px;background:var(--s2);border:1.5px solid var(--bd);border-radius:12px;padding:13px 14px;cursor:pointer;text-align:left;width:100%;transition:border-color .2s,background .2s}
 .po:hover,.po.sel{border-color:var(--a);background:var(--aa)}
+.po-ic{width:34px;height:34px;border-radius:9px;background:var(--aa);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--a);transition:background .2s}
+.po:hover .po-ic,.po.sel .po-ic{background:rgba(11,175,136,.18)}
 .pot{font-size:14px;font-weight:600;color:var(--tx)}
 .pos{font-size:12px;color:var(--t2);margin-top:2px}
 
@@ -75,9 +77,9 @@ body{height:100%;background:var(--bg);color:var(--tx);font-family:'Inter',ui-san
 .tgr{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .tgl{font-size:12px;color:var(--t2);flex-shrink:0}
 .tg{display:flex;background:var(--s2);border:1.5px solid var(--bd);border-radius:8px;overflow:hidden}
-.tb{flex:1;padding:8px 14px;border:none;background:none;color:var(--t2);font:12px/1 'Inter',ui-sans-serif,sans-serif;font-weight:500;cursor:pointer;transition:all .2s;white-space:nowrap}
-.tb.on{background:var(--a);color:var(--bg)}
-.disc{font-size:10px;color:var(--t3);font-style:italic}
+.tb{flex:1;padding:8px 14px;border:none;background:none;color:var(--t2);font:12px/1 'Inter',ui-sans-serif,sans-serif;font-weight:500;cursor:pointer;transition:all .2s;white-space:nowrap;display:flex;align-items:center;justify-content:center}
+.tb.on{background:var(--a);color:#fff}
+.disc{font-size:10px;color:var(--t3);font-style:italic;display:flex;align-items:center;gap:5px}
 
 /* ── sliders ── */
 .slr{margin:14px 0}
@@ -95,24 +97,25 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 .ql{font-size:10px;color:var(--t2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;font-weight:600}
 .qv{font-size:17px;font-weight:700;color:var(--tx)}
 .qs{font-size:10px;color:var(--t3);margin-top:1px}
-.feat{background:var(--aa);border:1px solid rgba(0,212,160,.25);border-radius:9px;padding:11px 12px;display:flex;gap:9px;align-items:flex-start;font-size:11px;color:var(--a);line-height:1.6}
-.feat svg{width:14px;height:14px;fill:var(--a);flex-shrink:0;margin-top:2px}
+.feat{background:var(--aa);border:1px solid rgba(11,175,136,.25);border-radius:9px;padding:11px 12px;display:flex;gap:9px;align-items:flex-start;font-size:11px;color:var(--ad);line-height:1.6}
+.feat svg{width:14px;height:14px;flex-shrink:0;margin-top:2px}
 
 /* ── funds ── */
 .fnds{display:flex;gap:7px;margin:9px 0}
-.fnd{flex:1;padding:9px 5px;background:var(--s2);border:1.5px solid var(--bd);border-radius:9px;cursor:pointer;text-align:center;transition:all .2s}
+.fnd{flex:1;padding:9px 5px;background:var(--s2);border:1.5px solid var(--bd);border-radius:9px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all .2s}
 .fnd.sel{border-color:var(--a);background:var(--aa)}
 .fn{font-size:9px;font-weight:700;color:var(--t2);letter-spacing:.06em;margin-bottom:2px}
 .fr{font-size:14px;font-weight:700;color:var(--a)}
 .fs{font-size:9px;color:var(--t3);margin-top:1px}
-.warn{background:rgba(245,166,35,.07);border:1px solid rgba(245,166,35,.2);border-radius:9px;padding:10px 11px;display:flex;gap:8px;font-size:11px;color:var(--gold);line-height:1.6}
-.warn svg{width:14px;height:14px;fill:var(--gold);flex-shrink:0;margin-top:2px}
+.warn{background:rgba(154,100,0,.07);border:1px solid rgba(154,100,0,.22);border-radius:9px;padding:10px 11px;display:flex;gap:8px;font-size:11px;color:var(--gold);line-height:1.6;align-items:flex-start}
+.warn svg{width:14px;height:14px;flex-shrink:0;margin-top:2px}
 
 /* ── buttons ── */
-.btn{width:100%;padding:13px;background:var(--a);color:var(--bg);border:none;border-radius:11px;font:700 14px 'Inter',ui-sans-serif,sans-serif;cursor:pointer;margin-top:13px;transition:background .2s,transform .1s}
+.btn{width:100%;padding:13px;background:var(--a);color:#fff;border:none;border-radius:11px;font:700 14px 'Inter',ui-sans-serif,sans-serif;cursor:pointer;margin-top:13px;transition:background .2s,transform .1s;display:flex;align-items:center;justify-content:center;gap:8px}
 .btn:hover{background:var(--ad)}.btn:active{transform:scale(.99)}
 .btn:disabled{background:var(--s4);color:var(--t3);cursor:default;transform:none}
-.gbtn{width:100%;padding:10px;background:none;border:1px solid var(--bd);border-radius:9px;color:var(--t2);font:13px 'Inter',ui-sans-serif,sans-serif;cursor:pointer;margin-top:8px;transition:border-color .2s,color .2s}
+.btn svg{flex-shrink:0}
+.gbtn{width:100%;padding:10px;background:none;border:1.5px solid var(--bd);border-radius:9px;color:var(--t2);font:13px 'Inter',ui-sans-serif,sans-serif;cursor:pointer;margin-top:8px;transition:border-color .2s,color .2s;display:flex;align-items:center;justify-content:center;gap:7px}
 .gbtn:hover{border-color:var(--a);color:var(--a)}
 
 /* ── illustration ── */
@@ -130,21 +133,22 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 .mq{margin-bottom:13px}
 .ml{font-size:12px;color:var(--t2);font-weight:500;margin-bottom:7px;display:block}
 .rg{display:flex;gap:7px}
-.rb{flex:1;padding:9px 6px;text-align:center;background:var(--s2);border:1.5px solid var(--bd);border-radius:8px;font:12px 'Inter',ui-sans-serif,sans-serif;color:var(--t2);cursor:pointer;transition:all .2s}
-.rb.on{border-color:var(--a);background:var(--aa);color:var(--a)}
+.rb{flex:1;padding:9px 6px;text-align:center;background:var(--s2);border:1.5px solid var(--bd);border-radius:8px;font:12px 'Inter',ui-sans-serif,sans-serif;color:var(--t2);cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center}
+.rb.on{border-color:var(--a);background:var(--aa);color:var(--ad)}
 .bmir{display:flex;gap:8px}.bmir .fi{flex:1}
-.bmib{background:var(--s2);border:1.5px solid var(--bd);border-radius:9px;padding:11px 12px;font-size:13px;font-weight:600;color:var(--t2);text-align:center;min-width:70px;white-space:nowrap}
+.bmib{background:var(--s2);border:1.5px solid var(--bd);border-radius:9px;padding:11px 12px;font-size:13px;font-weight:600;color:var(--t2);display:flex;align-items:center;justify-content:center;min-width:70px;white-space:nowrap}
 
 /* ── upload ── */
-.upz{border:2px dashed var(--bd);border-radius:11px;padding:24px 14px;text-align:center;cursor:pointer;transition:border-color .2s}
+.upz{border:2px dashed var(--bd);border-radius:11px;padding:24px 14px;text-align:center;cursor:pointer;transition:border-color .2s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
 .upz:hover,.upz.active{border-color:var(--a)}
-.upi{font-size:26px;margin-bottom:7px}
+.upz-ic{color:var(--t3);transition:color .2s}
+.upz:hover .upz-ic{color:var(--a)}
 .upt{font-size:13px;color:var(--t2)}
-.ups{font-size:11px;color:var(--t3);margin-top:3px}
+.ups{font-size:11px;color:var(--t3)}
 #pprev{width:100%;border-radius:8px;margin-top:10px;display:none;max-height:160px;object-fit:cover}
 .nck{margin-top:9px;padding:8px 11px;border-radius:8px;font-size:12px;display:none;gap:7px;align-items:center}
-.nck.ok{display:flex;background:rgba(0,212,160,.1);color:var(--a);border:1px solid rgba(0,212,160,.3)}
-.nck.fail{display:flex;background:rgba(255,68,85,.1);color:var(--red);border:1px solid rgba(255,68,85,.3)}
+.nck.ok{display:flex;background:rgba(11,175,136,.08);color:var(--ad);border:1px solid rgba(11,175,136,.3)}
+.nck.fail{display:flex;background:rgba(220,53,69,.07);color:var(--red);border:1px solid rgba(220,53,69,.25)}
 
 /* ── signature ── */
 #sigc{width:100%;height:145px;display:block;background:var(--s2);border:1.5px solid var(--bd);border-radius:9px;cursor:crosshair;touch-action:none}
@@ -152,8 +156,8 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 
 /* ── payment ── */
 .cnets{display:flex;gap:6px;margin-bottom:13px}
-.cnet{padding:4px 9px;border:1px solid var(--bd);border-radius:5px;font-size:10px;font-weight:700;color:var(--t3)}
-.phi{text-align:center;font-size:10px;color:var(--t3);margin-top:10px}
+.cnet{padding:4px 9px;border:1px solid var(--bd);border-radius:5px;font-size:10px;font-weight:700;color:var(--t3);display:flex;align-items:center;justify-content:center}
+.phi{text-align:center;font-size:10px;color:var(--t3);margin-top:10px;display:flex;align-items:center;justify-content:center;gap:5px}
 .pay2{display:flex;gap:9px}.pay2 .fi{flex:1}
 .payamt{display:flex;justify-content:space-between;align-items:center;background:var(--s2);border:1px solid var(--bd);border-radius:9px;padding:12px 14px;margin-bottom:12px}
 .payamt-l{font-size:11px;color:var(--t2)}
@@ -161,8 +165,8 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 
 /* ── confirmation ── */
 .conf{text-align:center;padding:14px 0}
-.cico{width:56px;height:56px;border-radius:50%;background:var(--aa);border:2px solid var(--a);display:grid;place-items:center;margin:0 auto 14px}
-.cico svg{width:24px;height:24px;fill:var(--a)}
+.cico{width:56px;height:56px;border-radius:50%;background:var(--aa);border:2px solid var(--a);display:grid;place-items:center;margin:0 auto 14px;color:var(--a)}
+.cico svg{width:24px;height:24px}
 .ch{font-size:17px;font-weight:700;margin-bottom:10px}
 .cp{font-size:13px;color:var(--t2);line-height:1.7}
 .ce{color:var(--a);font-weight:500}
@@ -176,20 +180,42 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 <div id="app">
   <div id="msgs"></div>
   <div id="typing">
-    <div class="av"><svg viewBox="0 0 24 24"><path d="M12 2L4 5v6c0 5.55 3.84 10.74 8 12 4.16-1.26 8-6.45 8-12V5l-8-3z"/></svg></div>
+    <div class="av">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    </div>
     <div class="tdots"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div>
   </div>
   <div id="bar">
     <div id="bri">
       <textarea id="inp" placeholder="Ask me anything…" rows="1"></textarea>
       <button id="snd" disabled>
-        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
       </button>
     </div>
   </div>
 </div>
 
 <script>
+// ═══════════════════════════════════════════════
+// ICON LIBRARY — stroke-based, currentColor
+// ═══════════════════════════════════════════════
+const ic = {
+  arrow:    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`,
+  check:    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 20 4 14"/></svg>`,
+  checkLg:  `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 20 4 14"/></svg>`,
+  edit:     `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
+  info:     `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`,
+  shield:   `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+  trending: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`,
+  savings:  `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7 12 2"/></svg>`,
+  passport: `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="2" width="18" height="20" rx="2"/><circle cx="12" cy="9" r="3"/><path d="M8 17c0-2.2 1.8-4 4-4s4 1.8 4 4"/></svg>`,
+  doc:      `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`,
+  card:     `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>`,
+  warn:     `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  brand:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+  lock:     `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
+};
+
 // ═══════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════
@@ -262,15 +288,13 @@ function calcProtPremium(cover, age, term, smoker, gender) {
 }
 
 function calcSavMaturity(premium, term) {
-  const r = 0.01 / 12;
-  let fv = 0;
+  const r = 0.01 / 12; let fv = 0;
   for (let i = 0; i < term * 12; i++) fv = (fv + premium) * (1 + r);
   return Math.round(fv);
 }
 
 function calcInvMaturity(premium, term, fundKey) {
-  const r = FUNDS[fundKey].rate / 100 / 12;
-  let fv = 0;
+  const r = FUNDS[fundKey].rate / 100 / 12; let fv = 0;
   for (let y = 1; y <= term; y++) {
     for (let m = 0; m < 12; m++) fv = (fv + premium) * (1 + r);
     fv *= 0.99;
@@ -281,28 +305,16 @@ function calcInvMaturity(premium, term, fundKey) {
 function buildIllustration() {
   const { plan, dob, smoker, gender } = S.u;
   const { cover, term, premium, fund } = S.q;
-  const age = getAge(dob);
-  const rows = [];
+  const age = getAge(dob); const rows = [];
   if (plan === 'protection') {
-    const mp = calcProtPremium(cover, age, term, smoker, gender);
-    let totalPaid = 0;
-    for (let y = 1; y <= term; y++) {
-      totalPaid += mp * 12;
-      rows.push({ y, age:age+y, paid:totalPaid, cover, mat:null });
-    }
+    const mp = calcProtPremium(cover, age, term, smoker, gender); let totalPaid = 0;
+    for (let y = 1; y <= term; y++) { totalPaid += mp*12; rows.push({y,age:age+y,paid:totalPaid,cover,mat:null}); }
   } else if (plan === 'savings') {
     const r = 0.01/12; let fv=0, totalPaid=0;
-    for (let y = 1; y <= term; y++) {
-      for (let m = 0; m < 12; m++) { fv=(fv+premium)*(1+r); totalPaid+=premium; }
-      rows.push({ y, age:age+y, paid:totalPaid, cover:Math.min(120*premium,1e6), mat:Math.round(fv) });
-    }
+    for (let y=1;y<=term;y++){for(let m=0;m<12;m++){fv=(fv+premium)*(1+r);totalPaid+=premium;}rows.push({y,age:age+y,paid:totalPaid,cover:Math.min(120*premium,1e6),mat:Math.round(fv)});}
   } else if (plan === 'investment') {
     const r = FUNDS[fund].rate/100/12; let fv=0, totalPaid=0;
-    for (let y = 1; y <= term; y++) {
-      for (let m = 0; m < 12; m++) { fv=(fv+premium)*(1+r); totalPaid+=premium; }
-      fv *= 0.99;
-      rows.push({ y, age:age+y, paid:totalPaid, cover:Math.min(120*premium,1e6), mat:Math.round(fv) });
-    }
+    for (let y=1;y<=term;y++){for(let m=0;m<12;m++){fv=(fv+premium)*(1+r);totalPaid+=premium;}fv*=0.99;rows.push({y,age:age+y,paid:totalPaid,cover:Math.min(120*premium,1e6),mat:Math.round(fv)});}
   }
   return rows;
 }
@@ -315,7 +327,7 @@ const CARD_ORDER = ['plan_card','info_card','prot_card','sav_card','inv_card','i
 function lockCard(id) {
   G(id).classList.add('done');
   const btn = G(id + '_edit');
-  if (btn) btn.style.display = 'block';
+  if (btn) btn.style.display = 'flex';
 }
 
 function editCard(id, resetStage) {
@@ -324,38 +336,21 @@ function editCard(id, resetStage) {
   card.classList.remove('done');
   const editBtn = G(id + '_edit');
   if (editBtn) editBtn.style.display = 'none';
-
-  // Remove all subsequent cards from DOM
   const idx = CARD_ORDER.indexOf(id);
-  CARD_ORDER.slice(idx + 1).forEach(cid => {
-    const el = G(cid);
-    if (el) el.closest('.comp')?.remove();
-  });
-
-  // Per-card cleanup
-  if (id === 'ill_card') {
-    const chk = G('ill_chk');
-    if (chk) { chk.checked = false; G('ill_btn').disabled = true; }
-  }
+  CARD_ORDER.slice(idx + 1).forEach(cid => { const el = G(cid); if (el) el.closest('.comp')?.remove(); });
+  if (id === 'ill_card') { const chk = G('ill_chk'); if (chk){chk.checked=false;G('ill_btn').disabled=true;} }
   if (id === 'up_card') {
-    G('pprev').style.display = 'none';
-    G('pprev').src = '';
-    const pt = G('pdf_tag'); if (pt) pt.style.display = 'none';
-    G('nck').style.display = 'none';
-    G('up_btn').style.display = 'none';
-    G('upz').classList.remove('active');
-    S.nameMatched = false;
+    G('pprev').style.display='none'; G('pprev').src='';
+    const pt=G('pdf_tag'); if(pt) pt.style.display='none';
+    G('nck').style.display='none'; G('up_btn').style.display='none';
+    G('upz').classList.remove('active'); S.nameMatched=false;
   }
-  if (id === 'sig_card') { clearSig(); S.sigData = null; }
+  if (id === 'sig_card') { clearSig(); S.sigData=null; }
   if (id === 'info_card') setTimeout(checkInfo, 50);
-
-  S.stage = resetStage;
-  S.busy = false;
-  setActive(true);
+  S.stage = resetStage; S.busy = false; setActive(true);
   card.scrollIntoView({ behavior:'smooth', block:'nearest' });
 }
 
-// Illustration has nothing to edit directly — go back to the quote card
 function editIllCard() {
   const qc = G('prot_card') || G('sav_card') || G('inv_card');
   if (qc) editCard(qc.id, 'info_collected');
@@ -365,12 +360,10 @@ function editIllCard() {
 // SYSTEM PROMPT (dynamic)
 // ═══════════════════════════════════════════════
 function buildSysPrompt() {
-  const u = S.u;
-  const age = u.dob ? getAge(u.dob) : null;
+  const u = S.u, age = u.dob ? getAge(u.dob) : null;
   const ctx = u.name
     ? `CURRENT USER: Name="${u.name}", Email="${u.email}", Age=${age}, Gender=${u.gender}, Income=$${u.income}/mo, Smoker=${u.smoker?'Yes':'No'}, Selected plan="${u.plan||'none'}"`
     : 'User has not yet provided personal details';
-
   return `You are Life Guard, a warm and empathetic life insurance advisor. Help users understand and purchase the right life insurance policy through natural, supportive conversation
 
 ${ctx}
@@ -415,17 +408,11 @@ RULES:
 // ═══════════════════════════════════════════════
 // API LAYER
 // ═══════════════════════════════════════════════
-async function callAPI(userMsg, imgData = null) {
+async function callAPI(userMsg) {
   S.conv.push({ role:'user', content: userMsg });
   showTyping(true);
   try {
-    const body = { messages: S.conv, systemPrompt: buildSysPrompt() };
-    if (imgData) body.imageData = imgData;
-    const res = await fetch(API, {
-      method:'POST',
-      headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify(body)
-    });
+    const res = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ messages:S.conv, systemPrompt:buildSysPrompt() }) });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'API error');
     const text = data.content?.[0]?.text || '';
@@ -433,56 +420,55 @@ async function callAPI(userMsg, imgData = null) {
     return parseResp(text);
   } catch(e) {
     S.conv.pop();
-    return { message:"I'm having a little trouble right now — please try again in a moment", action:{ type:'none' } };
-  } finally {
-    showTyping(false);
-  }
+    return { message:"I'm having a little trouble right now — please try again in a moment", action:{type:'none'} };
+  } finally { showTyping(false); }
+}
+
+async function callAPIWithImage(userMsg, imgData) {
+  S.conv.push({ role:'user', content: userMsg });
+  showTyping(true);
+  try {
+    const res = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ messages:S.conv, systemPrompt:buildSysPrompt()+'\n\nIMPORTANT: A passport image has been uploaded. Extract the full name and compare with the application name. Respond in the standard JSON format', imageData:imgData }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    const text = data.content?.[0]?.text || '';
+    S.conv.push({ role:'assistant', content: text });
+    return parseResp(text);
+  } catch(e) {
+    S.conv.pop();
+    return { message:"There was an issue verifying your document — please try uploading again", action:{type:'none'} };
+  } finally { showTyping(false); }
 }
 
 function parseResp(text) {
   try { return JSON.parse(text); }
-  catch {
-    const m = text.match(/\{[\s\S]*\}/);
-    if (m) try { return JSON.parse(m[0]); } catch{}
-    return { message: text, action:{ type:'none' } };
-  }
+  catch { const m=text.match(/\{[\s\S]*\}/); if(m) try{return JSON.parse(m[0]);}catch{} return {message:text,action:{type:'none'}}; }
 }
 
 // ═══════════════════════════════════════════════
 // CHAT RENDERING
 // ═══════════════════════════════════════════════
-function showTyping(show) {
-  typing.style.display = show ? 'flex' : 'none';
-  scroll();
-}
-
-function scroll() {
-  setTimeout(() => msgs.scrollTop = msgs.scrollHeight, 60);
-}
+function showTyping(show) { typing.style.display = show ? 'flex' : 'none'; scroll(); }
+function scroll() { setTimeout(() => msgs.scrollTop = msgs.scrollHeight, 60); }
 
 function addBot(text) {
   const row = document.createElement('div');
   row.className = 'row';
-  row.innerHTML = `<div class="av"><svg viewBox="0 0 24 24"><path d="M12 2L4 5v6c0 5.55 3.84 10.74 8 12 4.16-1.26 8-6.45 8-12V5l-8-3z"/></svg></div><div class="bbl">${text.replace(/\n/g,'<br>')}</div>`;
-  msgs.appendChild(row);
-  scroll();
+  row.innerHTML = `<div class="av">${ic.brand}</div><div class="bbl">${text.replace(/\n/g,'<br>')}</div>`;
+  msgs.appendChild(row); scroll();
 }
 
 function addUser(text) {
   const row = document.createElement('div');
   row.className = 'row u';
   row.innerHTML = `<div class="bbl">${text}</div>`;
-  msgs.appendChild(row);
-  scroll();
+  msgs.appendChild(row); scroll();
 }
 
 function addComp(html) {
   const div = document.createElement('div');
-  div.className = 'comp';
-  div.innerHTML = html;
-  msgs.appendChild(div);
-  scroll();
-  return div;
+  div.className = 'comp'; div.innerHTML = html;
+  msgs.appendChild(div); scroll(); return div;
 }
 
 // ═══════════════════════════════════════════════
@@ -507,36 +493,20 @@ async function executeAction(action) {
 }
 
 async function sendUserMsg() {
-  const text = inp.value.trim();
-  if (!text || S.busy) return;
-  S.busy = true; setActive(false);
-  addUser(text);
-  inp.value = ''; resizeInp();
-  const resp = await callAPI(text);
-  addBot(resp.message);
-  await executeAction(resp.action);
+  const text = inp.value.trim(); if (!text || S.busy) return;
+  S.busy = true; setActive(false); addUser(text); inp.value = ''; resizeInp();
+  const resp = await callAPI(text); addBot(resp.message); await executeAction(resp.action);
   S.busy = false; setActive(true);
 }
 
 async function sendAction(displayMsg, apiMsg) {
-  if (S.busy) return;
-  S.busy = true; setActive(false);
-  addUser(displayMsg);
-  const resp = await callAPI(apiMsg || displayMsg);
-  addBot(resp.message);
-  await executeAction(resp.action);
+  if (S.busy) return; S.busy = true; setActive(false); addUser(displayMsg);
+  const resp = await callAPI(apiMsg || displayMsg); addBot(resp.message); await executeAction(resp.action);
   S.busy = false; setActive(true);
 }
 
-function setActive(v) {
-  snd.disabled = !v;
-  inp.disabled = !v;
-}
-
-function resizeInp() {
-  inp.style.height = 'auto';
-  inp.style.height = Math.min(inp.scrollHeight, 90) + 'px';
-}
+function setActive(v) { snd.disabled = !v; inp.disabled = !v; }
+function resizeInp() { inp.style.height='auto'; inp.style.height=Math.min(inp.scrollHeight,90)+'px'; }
 
 // ═══════════════════════════════════════════════
 // COMPONENT: PLAN SELECTOR
@@ -548,33 +518,27 @@ function renderPlans() {
       <div class="ctag">Your goal</div>
       <div class="plans">
         <button class="po" onclick="pickPlan('protection',this)">
-          <div class="pot">🛡️ &nbsp;Protect my family</div>
-          <div class="pos">Pure life cover so loved ones are looked after</div>
+          <span class="po-ic">${ic.shield}</span>
+          <span><div class="pot">Protect my family</div><div class="pos">Pure life cover so loved ones are looked after</div></span>
         </button>
         <button class="po" onclick="pickPlan('investment',this)">
-          <div class="pot">📈 &nbsp;Grow my wealth</div>
-          <div class="pos">Long-term investment with life cover built in</div>
+          <span class="po-ic">${ic.trending}</span>
+          <span><div class="pot">Grow my wealth</div><div class="pos">Long-term investment with life cover built in</div></span>
         </button>
         <button class="po" onclick="pickPlan('savings',this)">
-          <div class="pot">💰 &nbsp;Save for a rainy day</div>
-          <div class="pos">Guaranteed savings with assured protection</div>
+          <span class="po-ic">${ic.savings}</span>
+          <span><div class="pot">Save for a rainy day</div><div class="pos">Guaranteed savings with assured protection</div></span>
         </button>
       </div>
     </div>
-    <button class="edit-link" id="plan_card_edit" style="display:none" onclick="editCard('plan_card','start')">✏ Change plan</button>`);
+    <button class="edit-link" id="plan_card_edit" style="display:none" onclick="editCard('plan_card','start')">${ic.edit} Change plan</button>`);
 }
 
 async function pickPlan(plan, btn) {
   const card = G('plan_card');
   if (!card || card.classList.contains('done')) return;
-  lockCard('plan_card');
-  S.u.plan = plan;
-  S.stage = 'plan_selected';
-  const labels = {
-    protection: 'Protect my family — pure life cover',
-    investment:  'Grow my wealth — investment with life cover',
-    savings:     'Save for a rainy day — guaranteed savings'
-  };
+  lockCard('plan_card'); S.u.plan = plan; S.stage = 'plan_selected';
+  const labels = { protection:'Protect my family — pure life cover', investment:'Grow my wealth — investment with life cover', savings:'Save for a rainy day — guaranteed savings' };
   await sendAction(labels[plan], `I've selected the ${plan} plan: ${labels[plan]} — please proceed`);
 }
 
@@ -590,109 +554,82 @@ function renderInfoForm() {
         <input class="fi" id="f_name"  type="text"  placeholder="Full name">
         <input class="fi" id="f_email" type="email" placeholder="Email address">
         <input class="fi" id="f_dob"   type="text"  placeholder="Date of birth — DD / MM / YYYY" maxlength="10">
-        <div class="tgr">
-          <span class="tgl">Gender</span>
-          <div class="tg" id="g_tg">
+        <div class="tgr"><span class="tgl">Gender</span>
+          <div class="tg">
             <button class="tb on" onclick="setTg('gender','male',this)">Male</button>
             <button class="tb"    onclick="setTg('gender','female',this)">Female</button>
           </div>
         </div>
-        <div class="pfxw">
-          <span class="pfx">USD</span>
-          <input class="fi pl" id="f_inc" type="number" min="1" placeholder="Monthly income">
-        </div>
-        <div class="tgr">
-          <span class="tgl">Smoker?</span>
-          <div class="tg" id="s_tg">
+        <div class="pfxw"><span class="pfx">USD</span><input class="fi pl" id="f_inc" type="number" min="1" placeholder="Monthly income"></div>
+        <div class="tgr"><span class="tgl">Smoker?</span>
+          <div class="tg">
             <button class="tb"    onclick="setTg('smoker','yes',this)">Yes</button>
             <button class="tb on" onclick="setTg('smoker','no',this)">No</button>
           </div>
         </div>
-        <div class="disc">💬 Honest answers ensure seamless claims</div>
+        <div class="disc">${ic.info} Honest answers ensure seamless claims</div>
       </div>
-      <button class="btn" id="info_btn" disabled onclick="submitInfo()">Get my quote →</button>
+      <button class="btn" id="info_btn" disabled onclick="submitInfo()">Get my quote ${ic.arrow}</button>
     </div>
-    <button class="edit-link" id="info_card_edit" style="display:none" onclick="editCard('info_card','plan_selected')">✏ Edit details</button>`);
-
+    <button class="edit-link" id="info_card_edit" style="display:none" onclick="editCard('info_card','plan_selected')">${ic.edit} Edit details</button>`);
   G('f_dob').addEventListener('input', maskDOB);
   ['f_name','f_email','f_dob','f_inc'].forEach(id => G(id).addEventListener('input', checkInfo));
 }
 
 function maskDOB(e) {
-  let v = e.target.value.replace(/\D/g,'');
-  if (v.length > 2) v = v.slice(0,2)+'/'+v.slice(2);
-  if (v.length > 5) v = v.slice(0,5)+'/'+v.slice(5);
-  e.target.value = v.slice(0,10);
+  let v=e.target.value.replace(/\D/g,'');
+  if(v.length>2)v=v.slice(0,2)+'/'+v.slice(2);
+  if(v.length>5)v=v.slice(0,5)+'/'+v.slice(5);
+  e.target.value=v.slice(0,10);
 }
 
 function setTg(field, val, btn) {
-  btn.parentElement.querySelectorAll('.tb').forEach(b => b.classList.remove('on'));
+  btn.parentElement.querySelectorAll('.tb').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
-  if (field === 'gender') S.u.gender = val;
-  else S.u.smoker = val === 'yes';
+  if(field==='gender') S.u.gender=val; else S.u.smoker=val==='yes';
 }
 
 function checkInfo() {
-  const nameOk  = G('f_name').value.trim().length >= 2;
-  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(G('f_email').value.trim());
-  const dobOk   = validDOB(G('f_dob').value);
-  const incOk   = Number(G('f_inc').value) > 0;
-  G('info_btn').disabled = !(nameOk && emailOk && dobOk && incOk);
+  const nameOk=G('f_name').value.trim().length>=2;
+  const emailOk=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(G('f_email').value.trim());
+  const dobOk=validDOB(G('f_dob').value);
+  const incOk=Number(G('f_inc').value)>0;
+  G('info_btn').disabled=!(nameOk&&emailOk&&dobOk&&incOk);
 }
 
 function validDOB(val) {
-  if (val.length !== 10) return false;
-  const age = getAge(val);
-  return age !== null && age >= 18 && age <= 70;
+  if(val.length!==10)return false;
+  const age=getAge(val);
+  return age!==null&&age>=18&&age<=70;
 }
 
 async function submitInfo() {
-  const name  = G('f_name').value.trim();
-  const email = G('f_email').value.trim();
-  const dob   = G('f_dob').value.trim();
-  const inc   = Number(G('f_inc').value);
-  let err = false;
-  if (name.length < 2)         { G('f_name').classList.add('err');  err=true; } else G('f_name').classList.remove('err');
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { G('f_email').classList.add('err'); err=true; } else G('f_email').classList.remove('err');
-  if (!validDOB(dob))          { G('f_dob').classList.add('err');   err=true; } else G('f_dob').classList.remove('err');
-  if (!inc)                    { G('f_inc').classList.add('err');   err=true; } else G('f_inc').classList.remove('err');
-  if (err) return;
-
-  S.u = { ...S.u, name, email, dob, income: inc };
-  const age = getAge(dob);
-
-  if (S.u.plan === 'protection') {
-    S.q.cover = Math.min(120 * inc, 1000000);
-    S.q.term  = 20;
-  } else {
-    S.q.premium = Math.max(100, Math.min(10000, Math.round(inc * 0.1)));
-    S.q.term    = 10;
-  }
-
-  lockCard('info_card');
-  S.stage = 'info_collected';
-  S.busy = true; setActive(false);
-  addUser('Details submitted ✓');
-  const resp = await callAPI(
-    `My details: Name="${name}", DOB=${dob} (age ${age}), Gender=${S.u.gender}, Income=$${inc}/mo, Smoker=${S.u.smoker?'yes':'no'} — Plan: ${S.u.plan} — please show me my ${S.u.plan} quote`
-  );
-  addBot(resp.message);
-  await executeAction(resp.action);
-  S.busy = false; setActive(true);
+  const name=G('f_name').value.trim(), email=G('f_email').value.trim(), dob=G('f_dob').value.trim(), inc=Number(G('f_inc').value);
+  let err=false;
+  if(name.length<2){G('f_name').classList.add('err');err=true;}else G('f_name').classList.remove('err');
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){G('f_email').classList.add('err');err=true;}else G('f_email').classList.remove('err');
+  if(!validDOB(dob)){G('f_dob').classList.add('err');err=true;}else G('f_dob').classList.remove('err');
+  if(!inc){G('f_inc').classList.add('err');err=true;}else G('f_inc').classList.remove('err');
+  if(err)return;
+  S.u={...S.u,name,email,dob,income:inc};
+  const age=getAge(dob);
+  if(S.u.plan==='protection'){S.q.cover=Math.min(120*inc,1000000);S.q.term=20;}
+  else{S.q.premium=Math.max(100,Math.min(10000,Math.round(inc*0.1)));S.q.term=10;}
+  lockCard('info_card'); S.stage='info_collected'; S.busy=true; setActive(false);
+  addUser('Details submitted');
+  const resp=await callAPI(`My details: Name="${name}", DOB=${dob} (age ${age}), Gender=${S.u.gender}, Income=$${inc}/mo, Smoker=${S.u.smoker?'yes':'no'} — Plan: ${S.u.plan} — please show me my ${S.u.plan} quote`);
+  addBot(resp.message); await executeAction(resp.action); S.busy=false; setActive(true);
 }
 
 // ═══════════════════════════════════════════════
 // COMPONENT: PROTECTION PLAN QUOTE
 // ═══════════════════════════════════════════════
 function renderProtQuote() {
-  if (G('prot_card')) return;
-  const { cover, term } = S.q;
-  const age = getAge(S.u.dob);
-  const mp = calcProtPremium(cover, age, term, S.u.smoker, S.u.gender);
-
+  if(G('prot_card'))return;
+  const {cover,term}=S.q, age=getAge(S.u.dob), mp=calcProtPremium(cover,age,term,S.u.smoker,S.u.gender);
   addComp(`
     <div class="card" id="prot_card">
-      <div class="ctag">🛡️ Protection plan</div>
+      <div class="ctag">${ic.shield} Protection plan</div>
       <div class="slr">
         <div class="slh"><span class="sll">Life cover</span><span class="slv" id="pc_cv">${fmt(cover)}</span></div>
         <input type="range" id="pc_csl" min="50000" max="1000000" step="10000" value="${cover}" oninput="upProtQ()">
@@ -708,57 +645,40 @@ function renderProtQuote() {
         <div><div class="ql">Monthly premium</div><div class="qv" id="pc_mp">${fmt(mp)}</div><div class="qs">per month</div></div>
         <div style="text-align:right"><div class="ql">Total payment</div><div class="qv" id="pc_tp">${fmt(mp*term*12)}</div><div class="qs" id="pc_ts">over ${term} years</div></div>
       </div>
-      <div class="qrow">
-        <div><div class="ql">Maturity amount</div><div class="qv">—</div><div class="qs">This plan has no maturity payout</div></div>
-      </div>
+      <div class="qrow"><div><div class="ql">Maturity amount</div><div class="qv">—</div><div class="qs">This plan has no maturity payout</div></div></div>
       <div class="qdiv"></div>
-      <div class="feat">
-        <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-        We continue paying your premiums for the entirety of the policy term in case you are diagnosed with a terminal illness, become disabled, or in the event of your death (we didn't want to mention this, but such is the nature of this conversation)
-      </div>
-      <button class="btn" onclick="acceptProtQ()">This looks good, proceed →</button>
+      <div class="feat">${ic.check} We continue paying your premiums for the entirety of the policy term in case you are diagnosed with a terminal illness, become disabled, or in the event of your death (we didn't want to mention this, but such is the nature of this conversation)</div>
+      <button class="btn" onclick="acceptProtQ()">This looks good, proceed ${ic.arrow}</button>
     </div>
-    <button class="edit-link" id="prot_card_edit" style="display:none" onclick="editCard('prot_card','info_collected')">✏ Adjust quote</button>`);
+    <button class="edit-link" id="prot_card_edit" style="display:none" onclick="editCard('prot_card','info_collected')">${ic.edit} Adjust quote</button>`);
 }
 
 function upProtQ() {
-  const cover = Number(G('pc_csl').value);
-  const term  = Number(G('pc_tsl').value);
-  S.q.cover = cover; S.q.term = term;
-  const mp = calcProtPremium(cover, getAge(S.u.dob), term, S.u.smoker, S.u.gender);
-  G('pc_cv').textContent = fmt(cover);
-  G('pc_tv').textContent = term + ' years';
-  G('pc_mp').textContent = fmt(mp);
-  G('pc_tp').textContent = fmt(mp * term * 12);
-  G('pc_ts').textContent = `over ${term} years`;
+  const cover=Number(G('pc_csl').value), term=Number(G('pc_tsl').value);
+  S.q.cover=cover; S.q.term=term;
+  const mp=calcProtPremium(cover,getAge(S.u.dob),term,S.u.smoker,S.u.gender);
+  G('pc_cv').textContent=fmt(cover); G('pc_tv').textContent=term+' years';
+  G('pc_mp').textContent=fmt(mp); G('pc_tp').textContent=fmt(mp*term*12);
+  G('pc_ts').textContent=`over ${term} years`;
 }
 
 async function acceptProtQ() {
-  const { cover, term } = S.q;
-  const mp = calcProtPremium(cover, getAge(S.u.dob), term, S.u.smoker, S.u.gender);
-  S.q.premium = mp;
-  lockCard('prot_card');
-  S.stage = 'quote_accepted';
-  S.busy = true; setActive(false);
+  const {cover,term}=S.q, mp=calcProtPremium(cover,getAge(S.u.dob),term,S.u.smoker,S.u.gender);
+  S.q.premium=mp; lockCard('prot_card'); S.stage='quote_accepted'; S.busy=true; setActive(false);
   addUser(`Protection plan confirmed — ${fmt(cover)} cover, ${term}-year term, ${fmt(mp)}/month`);
-  const resp = await callAPI(`I've accepted the Protection Plan — cover: ${fmt(cover)}, term: ${term} years, premium: ${fmt(mp)}/month — please show me the policy illustration`);
-  addBot(resp.message);
-  await executeAction(resp.action);
-  S.busy = false; setActive(true);
+  const resp=await callAPI(`I've accepted the Protection Plan — cover: ${fmt(cover)}, term: ${term} years, premium: ${fmt(mp)}/month — please show me the policy illustration`);
+  addBot(resp.message); await executeAction(resp.action); S.busy=false; setActive(true);
 }
 
 // ═══════════════════════════════════════════════
 // COMPONENT: SAVINGS PLAN QUOTE
 // ═══════════════════════════════════════════════
 function renderSavQuote() {
-  if (G('sav_card')) return;
-  const prem = S.q.premium, term = S.q.term;
-  const cover = Math.min(120*prem, 1e6);
-  const mat = calcSavMaturity(prem, term);
-
+  if(G('sav_card'))return;
+  const prem=S.q.premium, term=S.q.term, cover=Math.min(120*prem,1e6), mat=calcSavMaturity(prem,term);
   addComp(`
     <div class="card" id="sav_card">
-      <div class="ctag">💰 Savings plan</div>
+      <div class="ctag">${ic.savings} Savings plan</div>
       <div class="slr">
         <div class="slh"><span class="sll">Monthly premium</span><span class="slv" id="sv_pv">${fmt(prem)}</span></div>
         <input type="range" id="sv_psl" min="100" max="10000" step="50" value="${prem}" oninput="upSavQ()">
@@ -770,59 +690,42 @@ function renderSavQuote() {
         <div class="sllm"><span>5 yr</span><span>10 yr</span></div>
       </div>
       <div class="qdiv"></div>
-      <div class="qrow">
-        <div><div class="ql">Life cover</div><div class="qv" id="sv_cv">${fmt(cover)}</div><div class="qs">terminal illness, disability, or death</div></div>
-      </div>
+      <div class="qrow"><div><div class="ql">Life cover</div><div class="qv" id="sv_cv">${fmt(cover)}</div><div class="qs">terminal illness, disability, or death</div></div></div>
       <div class="qrow">
         <div><div class="ql">Guaranteed maturity</div><div class="qv" id="sv_mv">${fmt(mat)}</div><div class="qs">at end of term</div></div>
         <div style="text-align:right"><div class="ql">Total paid</div><div class="qv" id="sv_tp">${fmt(prem*term*12)}</div><div class="qs" id="sv_ts">over ${term} years</div></div>
       </div>
       <div class="qdiv"></div>
-      <div class="feat">
-        <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-        We continue paying your premiums for the entirety of the policy term in case you are diagnosed with a terminal illness, become disabled, or in the event of your death (we didn't want to mention this, but such is the nature of this conversation)
-      </div>
-      <button class="btn" onclick="acceptSavQ()">This looks good, proceed →</button>
+      <div class="feat">${ic.check} We continue paying your premiums for the entirety of the policy term in case you are diagnosed with a terminal illness, become disabled, or in the event of your death (we didn't want to mention this, but such is the nature of this conversation)</div>
+      <button class="btn" onclick="acceptSavQ()">This looks good, proceed ${ic.arrow}</button>
     </div>
-    <button class="edit-link" id="sav_card_edit" style="display:none" onclick="editCard('sav_card','info_collected')">✏ Adjust quote</button>`);
+    <button class="edit-link" id="sav_card_edit" style="display:none" onclick="editCard('sav_card','info_collected')">${ic.edit} Adjust quote</button>`);
 }
 
 function upSavQ() {
-  const prem = Number(G('sv_psl').value), term = Number(G('sv_tsl').value);
-  S.q.premium = prem; S.q.term = term;
-  const cover = Math.min(120*prem, 1e6);
-  G('sv_pv').textContent = fmt(prem);
-  G('sv_tv').textContent = term + ' years';
-  G('sv_cv').textContent = fmt(cover);
-  G('sv_mv').textContent = fmt(calcSavMaturity(prem, term));
-  G('sv_tp').textContent = fmt(prem*term*12);
-  G('sv_ts').textContent = `over ${term} years`;
+  const prem=Number(G('sv_psl').value), term=Number(G('sv_tsl').value);
+  S.q.premium=prem; S.q.term=term; const cover=Math.min(120*prem,1e6);
+  G('sv_pv').textContent=fmt(prem); G('sv_tv').textContent=term+' years';
+  G('sv_cv').textContent=fmt(cover); G('sv_mv').textContent=fmt(calcSavMaturity(prem,term));
+  G('sv_tp').textContent=fmt(prem*term*12); G('sv_ts').textContent=`over ${term} years`;
 }
 
 async function acceptSavQ() {
-  const { premium, term } = S.q;
-  lockCard('sav_card');
-  S.stage = 'quote_accepted';
-  S.busy = true; setActive(false);
+  const {premium,term}=S.q; lockCard('sav_card'); S.stage='quote_accepted'; S.busy=true; setActive(false);
   addUser(`Savings plan confirmed — ${fmt(premium)}/month, ${term}-year term`);
-  const resp = await callAPI(`I've accepted the savings plan — premium: ${fmt(premium)}/month, term: ${term} years — please show me the illustration`);
-  addBot(resp.message);
-  await executeAction(resp.action);
-  S.busy = false; setActive(true);
+  const resp=await callAPI(`I've accepted the savings plan — premium: ${fmt(premium)}/month, term: ${term} years — please show me the illustration`);
+  addBot(resp.message); await executeAction(resp.action); S.busy=false; setActive(true);
 }
 
 // ═══════════════════════════════════════════════
 // COMPONENT: INVESTMENT PLAN QUOTE
 // ═══════════════════════════════════════════════
 function renderInvQuote() {
-  if (G('inv_card')) return;
-  const prem = S.q.premium, term = S.q.term, fund = S.q.fund;
-  const cover = Math.min(120*prem, 1e6);
-  const mat = calcInvMaturity(prem, term, fund);
-
+  if(G('inv_card'))return;
+  const prem=S.q.premium, term=S.q.term, fund=S.q.fund, cover=Math.min(120*prem,1e6), mat=calcInvMaturity(prem,term,fund);
   addComp(`
     <div class="card" id="inv_card">
-      <div class="ctag">📈 Investment plan</div>
+      <div class="ctag">${ic.trending} Investment plan</div>
       <div class="slr">
         <div class="slh"><span class="sll">Monthly premium</span><span class="slv" id="iv_pv">${fmt(prem)}</span></div>
         <input type="range" id="iv_psl" min="100" max="10000" step="50" value="${prem}" oninput="upInvQ()">
@@ -836,301 +739,196 @@ function renderInvQuote() {
       <div class="qdiv"></div>
       <div class="ql" style="margin-bottom:8px">Investment fund</div>
       <div class="fnds" id="fund_opts">
-        <div class="fnd" onclick="pickFund('aggressive',this)">
-          <div class="fn">AGGRESSIVE</div><div class="fr">7.51%</div><div class="fs">70% Eq / 30% Debt</div>
-        </div>
-        <div class="fnd sel" onclick="pickFund('balanced',this)">
-          <div class="fn">BALANCED</div><div class="fr">5.98%</div><div class="fs">50% Eq / 50% Debt</div>
-        </div>
-        <div class="fnd" onclick="pickFund('passive',this)">
-          <div class="fn">PASSIVE</div><div class="fr">4.96%</div><div class="fs">30% Eq / 70% Debt</div>
-        </div>
+        <div class="fnd" onclick="pickFund('aggressive',this)"><div class="fn">AGGRESSIVE</div><div class="fr">7.51%</div><div class="fs">70% Eq / 30% Debt</div></div>
+        <div class="fnd sel" onclick="pickFund('balanced',this)"><div class="fn">BALANCED</div><div class="fr">5.98%</div><div class="fs">50% Eq / 50% Debt</div></div>
+        <div class="fnd" onclick="pickFund('passive',this)"><div class="fn">PASSIVE</div><div class="fr">4.96%</div><div class="fs">30% Eq / 70% Debt</div></div>
       </div>
       <div class="qdiv"></div>
       <div class="qrow">
         <div><div class="ql">Life cover</div><div class="qv" id="iv_cv">${fmt(cover)}</div></div>
         <div style="text-align:right"><div class="ql">Projected maturity</div><div class="qv" id="iv_mv">${fmt(mat)}</div><div class="qs" id="iv_ms">after ${term} yrs · Balanced</div></div>
       </div>
-      <div class="qrow">
-        <div><div class="ql">Total premiums</div><div class="qv" id="iv_tp">${fmt(prem*term*12)}</div></div>
-      </div>
+      <div class="qrow"><div><div class="ql">Total premiums</div><div class="qv" id="iv_tp">${fmt(prem*term*12)}</div></div></div>
       <div class="qdiv"></div>
-      <div class="feat" style="margin-bottom:10px">
-        <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-        We continue paying your premiums for the entirety of the policy term in case you are diagnosed with a terminal illness, become disabled, or in the event of your death (we didn't want to mention this, but such is the nature of this conversation)
-      </div>
-      <div class="warn">
-        <svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
-        Past returns are not indicative of future gains — please invest as per your risk appetite
-      </div>
-      <button class="btn" onclick="acceptInvQ()">This looks good, proceed →</button>
+      <div class="feat" style="margin-bottom:10px">${ic.check} We continue paying your premiums for the entirety of the policy term in case you are diagnosed with a terminal illness, become disabled, or in the event of your death (we didn't want to mention this, but such is the nature of this conversation)</div>
+      <div class="warn">${ic.warn} Past returns are not indicative of future gains — please invest as per your risk appetite</div>
+      <button class="btn" onclick="acceptInvQ()">This looks good, proceed ${ic.arrow}</button>
     </div>
-    <button class="edit-link" id="inv_card_edit" style="display:none" onclick="editCard('inv_card','info_collected')">✏ Adjust quote</button>`);
+    <button class="edit-link" id="inv_card_edit" style="display:none" onclick="editCard('inv_card','info_collected')">${ic.edit} Adjust quote</button>`);
 }
 
 function pickFund(key, el) {
-  document.querySelectorAll('#fund_opts .fnd').forEach(f => f.classList.remove('sel'));
-  el.classList.add('sel');
-  S.q.fund = key;
-  upInvQ();
+  document.querySelectorAll('#fund_opts .fnd').forEach(f=>f.classList.remove('sel'));
+  el.classList.add('sel'); S.q.fund=key; upInvQ();
 }
 
 function upInvQ() {
-  const prem = Number(G('iv_psl').value), term = Number(G('iv_tsl').value);
-  S.q.premium = prem; S.q.term = term;
-  const cover = Math.min(120*prem, 1e6);
-  const mat = calcInvMaturity(prem, term, S.q.fund);
-  G('iv_pv').textContent = fmt(prem);
-  G('iv_tv').textContent = term + ' years';
-  G('iv_cv').textContent = fmt(cover);
-  G('iv_mv').textContent = fmt(mat);
-  G('iv_ms').textContent = `after ${term} yrs · ${FUNDS[S.q.fund].label}`;
-  G('iv_tp').textContent = fmt(prem*term*12);
+  const prem=Number(G('iv_psl').value), term=Number(G('iv_tsl').value);
+  S.q.premium=prem; S.q.term=term; const cover=Math.min(120*prem,1e6), mat=calcInvMaturity(prem,term,S.q.fund);
+  G('iv_pv').textContent=fmt(prem); G('iv_tv').textContent=term+' years';
+  G('iv_cv').textContent=fmt(cover); G('iv_mv').textContent=fmt(mat);
+  G('iv_ms').textContent=`after ${term} yrs · ${FUNDS[S.q.fund].label}`; G('iv_tp').textContent=fmt(prem*term*12);
 }
 
 async function acceptInvQ() {
-  const { premium, term, fund } = S.q;
-  const mat = calcInvMaturity(premium, term, fund);
-  lockCard('inv_card');
-  S.stage = 'quote_accepted';
-  S.busy = true; setActive(false);
+  const {premium,term,fund}=S.q, mat=calcInvMaturity(premium,term,fund);
+  lockCard('inv_card'); S.stage='quote_accepted'; S.busy=true; setActive(false);
   addUser(`Investment plan confirmed — ${fmt(premium)}/month, ${term} yrs, ${FUNDS[fund].label} Fund`);
-  const resp = await callAPI(`I've accepted the investment plan — premium: ${fmt(premium)}/month, term: ${term} years, fund: ${FUNDS[fund].label} (${FUNDS[fund].rate}%), projected maturity: ${fmt(mat)} — please show the illustration`);
-  addBot(resp.message);
-  await executeAction(resp.action);
-  S.busy = false; setActive(true);
+  const resp=await callAPI(`I've accepted the investment plan — premium: ${fmt(premium)}/month, term: ${term} years, fund: ${FUNDS[fund].label} (${FUNDS[fund].rate}%), projected maturity: ${fmt(mat)} — please show the illustration`);
+  addBot(resp.message); await executeAction(resp.action); S.busy=false; setActive(true);
 }
 
 // ═══════════════════════════════════════════════
 // COMPONENT: ILLUSTRATION TABLE
 // ═══════════════════════════════════════════════
 function renderIllustration() {
-  if (G('ill_card')) return;
-  const rows = buildIllustration();
-  const isProtection = S.u.plan === 'protection';
-
-  const hdr = isProtection
-    ? '<th>Yr</th><th>Age</th><th>Premiums paid</th><th>Life cover</th>'
-    : '<th>Yr</th><th>Age</th><th>Premiums paid</th><th>Life cover</th><th>Maturity value</th>';
-
-  const tBody = rows.map(r => {
-    const base = `<td>${r.y}</td><td>${r.age}</td><td>${fmt(r.paid)}</td><td>${fmt(r.cover)}</td>`;
-    return `<tr>${base}${isProtection ? '' : `<td>${fmt(r.mat)}</td>`}</tr>`;
-  }).join('');
-
-  const last = rows[rows.length-1];
-  const totBase = `<td>Total</td><td>—</td><td>${fmt(last.paid)}</td><td>${fmt(last.cover)}</td>`;
-  const totRow = `<tr class="tot">${totBase}${isProtection ? '' : `<td>${fmt(last.mat)}</td>`}</tr>`;
-
+  if(G('ill_card'))return;
+  const rows=buildIllustration(), isP=S.u.plan==='protection';
+  const hdr=isP?'<th>Yr</th><th>Age</th><th>Premiums paid</th><th>Life cover</th>':'<th>Yr</th><th>Age</th><th>Premiums paid</th><th>Life cover</th><th>Maturity value</th>';
+  const tBody=rows.map(r=>`<tr><td>${r.y}</td><td>${r.age}</td><td>${fmt(r.paid)}</td><td>${fmt(r.cover)}</td>${isP?'':`<td>${fmt(r.mat)}</td>`}</tr>`).join('');
+  const last=rows[rows.length-1];
+  const totRow=`<tr class="tot"><td>Total</td><td>—</td><td>${fmt(last.paid)}</td><td>${fmt(last.cover)}</td>${isP?'':`<td>${fmt(last.mat)}</td>`}</tr>`;
   addComp(`
     <div class="card" id="ill_card">
       <div class="ctag">Policy illustration</div>
-      <div class="ilw">
-        <table class="ilt">
-          <thead><tr>${hdr}</tr></thead>
-          <tbody>${tBody}</tbody>
-          <tfoot>${totRow}</tfoot>
-        </table>
-      </div>
-      <label class="decl">
-        <input type="checkbox" id="ill_chk" onchange="G('ill_btn').disabled=!this.checked">
-        I hereby confirm that I have fully read and understood the policy terms, conditions, and the illustration above
-      </label>
-      <button class="btn" id="ill_btn" disabled onclick="agreeIll()">I agree, proceed →</button>
+      <div class="ilw"><table class="ilt"><thead><tr>${hdr}</tr></thead><tbody>${tBody}</tbody><tfoot>${totRow}</tfoot></table></div>
+      <label class="decl"><input type="checkbox" id="ill_chk" onchange="G('ill_btn').disabled=!this.checked"> I hereby confirm that I have fully read and understood the policy terms, conditions, and the illustration above</label>
+      <button class="btn" id="ill_btn" disabled onclick="agreeIll()">I agree, proceed ${ic.arrow}</button>
     </div>
-    <button class="edit-link" id="ill_card_edit" style="display:none" onclick="editIllCard()">✏ Adjust quote</button>`);
+    <button class="edit-link" id="ill_card_edit" style="display:none" onclick="editIllCard()">${ic.edit} Adjust quote</button>`);
 }
 
 async function agreeIll() {
-  lockCard('ill_card');
-  S.stage = 'illustration_agreed';
-  await sendAction('Policy illustration agreed ✓', "I've reviewed and agreed to the policy illustration — please proceed to the medical questionnaire");
+  lockCard('ill_card'); S.stage='illustration_agreed';
+  await sendAction('Policy illustration agreed', "I've reviewed and agreed to the policy illustration — please proceed to the medical questionnaire");
 }
 
 // ═══════════════════════════════════════════════
 // COMPONENT: MEDICAL QUESTIONNAIRE
 // ═══════════════════════════════════════════════
 function renderMedical() {
-  if (G('med_card')) return;
+  if(G('med_card'))return;
   addComp(`
     <div class="card" id="med_card">
       <div class="ctag">Medical questionnaire</div>
       <div class="mq">
         <div class="bmir">
           <input class="fi" id="m_h" type="number" placeholder="Height (cm)" min="100" max="250" oninput="calcBMI()">
-          <input class="fi" id="m_w" type="number" placeholder="Weight (kg)"  min="20"  max="300" oninput="calcBMI()">
+          <input class="fi" id="m_w" type="number" placeholder="Weight (kg)" min="20" max="300" oninput="calcBMI()">
           <div class="bmib" id="bmi_box">BMI</div>
         </div>
       </div>
-      <div class="mq">
-        <span class="ml">Alcohol consumption</span>
+      <div class="mq"><span class="ml">Alcohol consumption</span>
         <div class="rg">
           <button class="rb on" onclick="setRb('alc','none',this)">None</button>
           <button class="rb"    onclick="setRb('alc','occasional',this)">Occasional</button>
           <button class="rb"    onclick="setRb('alc','regular',this)">Regular</button>
         </div>
       </div>
-      <div class="mq">
-        <span class="ml">Chronic condition — diabetes, hypertension, blood pressure, or similar?</span>
-        <div class="rg">
-          <button class="rb on" onclick="setRb('cc','no',this)">No</button>
-          <button class="rb"    onclick="setRb('cc','yes',this)">Yes</button>
-        </div>
+      <div class="mq"><span class="ml">Chronic condition — diabetes, hypertension, blood pressure, or similar?</span>
+        <div class="rg"><button class="rb on" onclick="setRb('cc','no',this)">No</button><button class="rb" onclick="setRb('cc','yes',this)">Yes</button></div>
       </div>
-      <div class="mq">
-        <span class="ml">Hospitalised or had major surgery in the last 5 years?</span>
-        <div class="rg">
-          <button class="rb on" onclick="setRb('hosp','no',this)">No</button>
-          <button class="rb"    onclick="setRb('hosp','yes',this)">Yes</button>
-        </div>
+      <div class="mq"><span class="ml">Hospitalised or had major surgery in the last 5 years?</span>
+        <div class="rg"><button class="rb on" onclick="setRb('hosp','no',this)">No</button><button class="rb" onclick="setRb('hosp','yes',this)">Yes</button></div>
       </div>
-      <div class="mq">
-        <span class="ml">Taking any regular medication?</span>
-        <div class="rg">
-          <button class="rb on" onclick="setRb('medic','no',this)">No</button>
-          <button class="rb"    onclick="setRb('medic','yes',this)">Yes</button>
-        </div>
+      <div class="mq"><span class="ml">Taking any regular medication?</span>
+        <div class="rg"><button class="rb on" onclick="setRb('medic','no',this)">No</button><button class="rb" onclick="setRb('medic','yes',this)">Yes</button></div>
       </div>
-      <div class="mq">
-        <span class="ml">Family history of cancer, heart disease, or stroke?</span>
-        <div class="rg">
-          <button class="rb on" onclick="setRb('fhist','no',this)">No</button>
-          <button class="rb"    onclick="setRb('fhist','yes',this)">Yes</button>
-        </div>
+      <div class="mq"><span class="ml">Family history of cancer, heart disease, or stroke?</span>
+        <div class="rg"><button class="rb on" onclick="setRb('fhist','no',this)">No</button><button class="rb" onclick="setRb('fhist','yes',this)">Yes</button></div>
       </div>
-      <div class="mq">
-        <span class="ml">Hazardous activities — diving, motorsport, or similar?</span>
-        <div class="rg">
-          <button class="rb on" onclick="setRb('haz','no',this)">No</button>
-          <button class="rb"    onclick="setRb('haz','yes',this)">Yes</button>
-        </div>
+      <div class="mq"><span class="ml">Hazardous activities — diving, motorsport, or similar?</span>
+        <div class="rg"><button class="rb on" onclick="setRb('haz','no',this)">No</button><button class="rb" onclick="setRb('haz','yes',this)">Yes</button></div>
       </div>
-      <div class="disc" style="margin-bottom:4px">💬 Honest answers ensure seamless claims</div>
-      <button class="btn" onclick="submitMed()">Submit medical information →</button>
+      <div class="disc" style="margin-bottom:4px">${ic.info} Honest answers ensure seamless claims</div>
+      <button class="btn" onclick="submitMed()">Submit medical information ${ic.arrow}</button>
     </div>
-    <button class="edit-link" id="med_card_edit" style="display:none" onclick="editCard('med_card','illustration_agreed')">✏ Edit medical information</button>`);
+    <button class="edit-link" id="med_card_edit" style="display:none" onclick="editCard('med_card','illustration_agreed')">${ic.edit} Edit medical information</button>`);
 }
 
 function calcBMI() {
-  const h = Number(G('m_h').value), w = Number(G('m_w').value);
-  if (h > 0 && w > 0) {
-    const bmi = (w / Math.pow(h/100, 2)).toFixed(1);
-    const box = G('bmi_box');
-    box.textContent = 'BMI ' + bmi;
-    box.style.color = (bmi < 18.5 || bmi > 30) ? 'var(--gold)' : 'var(--a)';
-  }
+  const h=Number(G('m_h').value), w=Number(G('m_w').value);
+  if(h>0&&w>0){const bmi=(w/Math.pow(h/100,2)).toFixed(1);const box=G('bmi_box');box.textContent='BMI '+bmi;box.style.color=(bmi<18.5||bmi>30)?'var(--gold)':'var(--a)';}
 }
 
 function setRb(key, val, btn) {
-  btn.parentElement.querySelectorAll('.rb').forEach(b => b.classList.remove('on'));
-  btn.classList.add('on');
-  S.medVals[key] = val;
+  btn.parentElement.querySelectorAll('.rb').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on'); S.medVals[key]=val;
 }
 
 async function submitMed() {
-  const h = G('m_h').value || '—', w = G('m_w').value || '—';
-  const mv = S.medVals;
-  lockCard('med_card');
-  S.stage = 'medical_done';
-  S.busy = true; setActive(false);
-  addUser('Medical information submitted ✓');
-  const summary = `Height:${h}cm, Weight:${w}kg, Alcohol:${mv.alc}, Chronic conditions:${mv.cc}, Hospitalised:${mv.hosp}, Medication:${mv.medic}, Family history:${mv.fhist}, Hazardous activities:${mv.haz}`;
-  const resp = await callAPI(`Medical questionnaire complete — ${summary} — please proceed to document upload`);
-  addBot(resp.message);
-  await executeAction(resp.action);
-  S.busy = false; setActive(true);
+  const h=G('m_h').value||'—', w=G('m_w').value||'—', mv=S.medVals;
+  lockCard('med_card'); S.stage='medical_done'; S.busy=true; setActive(false);
+  addUser('Medical information submitted');
+  const summary=`Height:${h}cm, Weight:${w}kg, Alcohol:${mv.alc}, Chronic conditions:${mv.cc}, Hospitalised:${mv.hosp}, Medication:${mv.medic}, Family history:${mv.fhist}, Hazardous activities:${mv.haz}`;
+  const resp=await callAPI(`Medical questionnaire complete — ${summary} — please proceed to document upload`);
+  addBot(resp.message); await executeAction(resp.action); S.busy=false; setActive(true);
 }
 
 // ═══════════════════════════════════════════════
 // COMPONENT: DOCUMENT UPLOAD
 // ═══════════════════════════════════════════════
 function renderUpload() {
-  if (G('up_card')) return;
+  if(G('up_card'))return;
   addComp(`
     <div class="card" id="up_card">
       <div class="ctag">Identity verification</div>
       <div class="upz" id="upz" onclick="G('pp_inp').click()">
-        <div class="upi">🛂</div>
+        <span class="upz-ic">${ic.passport}</span>
         <div class="upt">Upload your passport</div>
         <div class="ups">Tap to select — JPG, PNG or PDF</div>
       </div>
       <input type="file" id="pp_inp" accept="image/*,application/pdf" style="display:none" onchange="handlePassport(this)">
       <img id="pprev" alt="Passport preview">
-      <div id="pdf_tag" style="display:none;margin-top:10px;padding:10px 12px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;font-size:12px;color:var(--t2)"></div>
+      <div id="pdf_tag" style="display:none;margin-top:10px;padding:10px 12px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;font-size:12px;color:var(--t2);display:none;align-items:center;gap:7px"></div>
       <div class="nck" id="nck"></div>
-      <button class="btn" id="up_btn" style="display:none" onclick="confirmPassport()">Confirmed, proceed →</button>
+      <button class="btn" id="up_btn" style="display:none" onclick="confirmPassport()">Confirmed, proceed ${ic.arrow}</button>
     </div>
-    <button class="edit-link" id="up_card_edit" style="display:none" onclick="editCard('up_card','medical_done')">✏ Re-upload document</button>`);
+    <button class="edit-link" id="up_card_edit" style="display:none" onclick="editCard('up_card','medical_done')">${ic.edit} Re-upload document</button>`);
 }
 
 async function handlePassport(input) {
-  const file = input.files[0];
-  if (!file) return;
+  const file=input.files[0]; if(!file)return;
   G('upz').classList.add('active');
-  const isPDF = file.type === 'application/pdf';
-  const reader = new FileReader();
-  reader.onload = async e => {
-    const b64 = e.target.result.split(',')[1];
-    const mtype = file.type || 'image/jpeg';
-    if (isPDF) {
-      G('pprev').style.display = 'none';
-      G('pdf_tag').textContent = '📄 ' + file.name;
-      G('pdf_tag').style.display = 'block';
+  const isPDF=file.type==='application/pdf';
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    const b64=e.target.result.split(',')[1], mtype=file.type||'image/jpeg';
+    if(isPDF){
+      G('pprev').style.display='none';
+      const pt=G('pdf_tag');
+      pt.innerHTML=`${ic.doc} ${file.name}`;
+      pt.style.display='flex';
     } else {
-      G('pprev').src = e.target.result;
-      G('pprev').style.display = 'block';
+      G('pprev').src=e.target.result; G('pprev').style.display='block';
     }
-
-    S.busy = true; setActive(false);
-    showTyping(true);
-
-    const checkMsg = `The user has uploaded their passport — please extract the name from the passport (from the MRZ or data page) and check if it matches the application name "${S.u.name}" — state whether they match or not, and be specific`;
-
-    try {
-      S.conv.push({ role:'user', content: checkMsg });
-      const body = {
-        messages: S.conv,
-        systemPrompt: buildSysPrompt() + '\n\nIMPORTANT: A passport image has been uploaded. Extract the full name and compare with the application name. Respond in the standard JSON format',
-        imageData: { base64: b64, mediaType: mtype }
-      };
-      const res = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      const text = data.content?.[0]?.text || '';
-      S.conv.push({ role:'assistant', content: text });
-      const resp = parseResp(text);
-      addBot(resp.message);
-
-      const isMatch = /match|correct|verified|same|confirm/i.test(resp.message) && !/not match|mismatch|differ|incorrect/i.test(resp.message);
-      const nck = G('nck');
-      if (isMatch) {
-        nck.className = 'nck ok'; nck.innerHTML = '✓ Name verified — ' + S.u.name; nck.style.display = 'flex';
-        S.nameMatched = true;
-        G('up_btn').style.display = 'block';
-      } else {
-        nck.className = 'nck fail'; nck.innerHTML = '✗ Name mismatch — please check and re-upload'; nck.style.display = 'flex';
-      }
-    } catch(err) {
-      addBot("There was an issue verifying your document — please try uploading again");
-    } finally {
-      showTyping(false);
-      S.busy = false; setActive(true);
+    S.busy=true; setActive(false); showTyping(true);
+    const checkMsg=`The user has uploaded their passport — please extract the name from the passport (from the MRZ or data page) and check if it matches the application name "${S.u.name}" — state whether they match or not, and be specific`;
+    const resp=await callAPIWithImage(checkMsg,{base64:b64,mediaType:mtype});
+    addBot(resp.message);
+    const isMatch=/match|correct|verified|same|confirm/i.test(resp.message)&&!/not match|mismatch|differ|incorrect/i.test(resp.message);
+    const nck=G('nck');
+    if(isMatch){
+      nck.className='nck ok'; nck.innerHTML=`${ic.check} Name verified — ${S.u.name}`; nck.style.display='flex';
+      S.nameMatched=true; G('up_btn').style.display='flex';
+    } else {
+      nck.className='nck fail'; nck.innerHTML='Name mismatch — please check and re-upload'; nck.style.display='flex';
     }
+    S.busy=false; setActive(true);
   };
   reader.readAsDataURL(file);
 }
 
 async function confirmPassport() {
-  lockCard('up_card');
-  S.stage = 'doc_uploaded';
-  await sendAction('Passport verified ✓', "My passport has been verified successfully — please proceed to the digital signature");
+  lockCard('up_card'); S.stage='doc_uploaded';
+  await sendAction('Passport verified', "My passport has been verified successfully — please proceed to the digital signature");
 }
 
 // ═══════════════════════════════════════════════
 // COMPONENT: DIGITAL SIGNATURE
 // ═══════════════════════════════════════════════
 function renderSignature() {
-  if (G('sig_card')) return;
+  if(G('sig_card'))return;
   addComp(`
     <div class="card" id="sig_card">
       <div class="ctag">Digital signature</div>
@@ -1138,78 +936,48 @@ function renderSignature() {
       <canvas id="sigc"></canvas>
       <div class="sgh">Draw your signature above</div>
       <button class="gbtn" onclick="clearSig()">Clear</button>
-      <button class="btn" onclick="submitSig()">Submit signature →</button>
+      <button class="btn" onclick="submitSig()">Submit signature ${ic.arrow}</button>
     </div>
-    <button class="edit-link" id="sig_card_edit" style="display:none" onclick="editCard('sig_card','doc_uploaded')">✏ Re-sign</button>`);
+    <button class="edit-link" id="sig_card_edit" style="display:none" onclick="editCard('sig_card','doc_uploaded')">${ic.edit} Re-sign</button>`);
   initSigPad();
 }
 
 function initSigPad() {
-  const canvas = G('sigc');
-  const ctx = canvas.getContext('2d');
-  const dpr = window.devicePixelRatio || 1;
-  const w = canvas.offsetWidth || 400;
-  canvas.width  = w * dpr;
-  canvas.height = 145 * dpr;
-  ctx.scale(dpr, dpr);
-  ctx.strokeStyle = '#00D4A0';
-  ctx.lineWidth   = 2;
-  ctx.lineCap     = 'round';
-  ctx.lineJoin    = 'round';
-  let drawing = false;
-
-  function pos(e) {
-    const r = canvas.getBoundingClientRect();
-    const src = e.touches ? e.touches[0] : e;
-    return { x:(src.clientX-r.left)*(canvas.width/dpr/r.width), y:(src.clientY-r.top)*(canvas.height/dpr/r.height) };
-  }
-  function start(e) { e.preventDefault(); drawing=true; const p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); }
-  function move(e)  { if(!drawing)return; e.preventDefault(); const p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); }
-  function end()    { drawing=false; }
-
-  canvas.addEventListener('mousedown',start); canvas.addEventListener('mousemove',move);
-  canvas.addEventListener('mouseup',end);     canvas.addEventListener('mouseleave',end);
-  canvas.addEventListener('touchstart',start,{passive:false});
-  canvas.addEventListener('touchmove',move,{passive:false});
-  canvas.addEventListener('touchend',end);
-  window._sigCtx = ctx; window._sigCanvas = canvas;
+  const canvas=G('sigc'), ctx=canvas.getContext('2d'), dpr=window.devicePixelRatio||1, w=canvas.offsetWidth||400;
+  canvas.width=w*dpr; canvas.height=145*dpr; ctx.scale(dpr,dpr);
+  ctx.strokeStyle='#0BAF88'; ctx.lineWidth=2; ctx.lineCap='round'; ctx.lineJoin='round';
+  let drawing=false;
+  function pos(e){const r=canvas.getBoundingClientRect(),src=e.touches?e.touches[0]:e;return{x:(src.clientX-r.left)*(canvas.width/dpr/r.width),y:(src.clientY-r.top)*(canvas.height/dpr/r.height)};}
+  function start(e){e.preventDefault();drawing=true;const p=pos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);}
+  function move(e){if(!drawing)return;e.preventDefault();const p=pos(e);ctx.lineTo(p.x,p.y);ctx.stroke();}
+  function end(){drawing=false;}
+  canvas.addEventListener('mousedown',start);canvas.addEventListener('mousemove',move);canvas.addEventListener('mouseup',end);canvas.addEventListener('mouseleave',end);
+  canvas.addEventListener('touchstart',start,{passive:false});canvas.addEventListener('touchmove',move,{passive:false});canvas.addEventListener('touchend',end);
+  window._sigCtx=ctx;window._sigCanvas=canvas;
 }
 
-function clearSig() {
-  const c = window._sigCanvas;
-  if (c) window._sigCtx.clearRect(0, 0, c.width, c.height);
-}
+function clearSig(){const c=window._sigCanvas;if(c)window._sigCtx.clearRect(0,0,c.width,c.height);}
 
 async function submitSig() {
-  const c = window._sigCanvas;
-  if (!c) return;
-  const data = c.getContext('2d').getImageData(0,0,c.width,c.height).data;
-  if (!Array.from(data).some((v,i) => i%4===3 && v>0)) {
-    addBot("Please draw your signature on the canvas before proceeding");
-    return;
-  }
-  S.sigData = c.toDataURL();
-  lockCard('sig_card');
-  S.stage = 'signed';
-  await sendAction('Signature submitted ✓', "I've provided my digital signature — please proceed to payment");
+  const c=window._sigCanvas; if(!c)return;
+  const data=c.getContext('2d').getImageData(0,0,c.width,c.height).data;
+  if(!Array.from(data).some((v,i)=>i%4===3&&v>0)){addBot("Please draw your signature on the canvas before proceeding");return;}
+  S.sigData=c.toDataURL(); lockCard('sig_card'); S.stage='signed';
+  await sendAction('Signature submitted',"I've provided my digital signature — please proceed to payment");
 }
 
 // ═══════════════════════════════════════════════
 // COMPONENT: PAYMENT
 // ═══════════════════════════════════════════════
 function renderPayment() {
-  if (G('pay_card')) return;
-  let amount = S.q.premium;
-  if (S.u.plan === 'protection') amount = calcProtPremium(S.q.cover, getAge(S.u.dob), S.q.term, S.u.smoker, S.u.gender);
-
+  if(G('pay_card'))return;
+  let amount=S.q.premium;
+  if(S.u.plan==='protection')amount=calcProtPremium(S.q.cover,getAge(S.u.dob),S.q.term,S.u.smoker,S.u.gender);
   addComp(`
     <div class="card" id="pay_card">
-      <div class="ctag">💳 First premium payment</div>
+      <div class="ctag">${ic.card} First premium payment</div>
       <div class="cnets"><div class="cnet">VISA</div><div class="cnet">MC</div><div class="cnet">AMEX</div></div>
-      <div class="payamt">
-        <span class="payamt-l">First month premium</span>
-        <span class="payamt-v">${fmt(amount)}</span>
-      </div>
+      <div class="payamt"><span class="payamt-l">First month premium</span><span class="payamt-v">${fmt(amount)}</span></div>
       <div class="flds">
         <input class="fi" id="py_name" type="text" placeholder="Name on card">
         <input class="fi" id="py_card" type="tel"  placeholder="Card number" maxlength="19" oninput="fmtCard(this)">
@@ -1218,60 +986,41 @@ function renderPayment() {
           <input class="fi" id="py_cvv" type="tel" placeholder="CVV" maxlength="4" style="flex:0 0 80px">
         </div>
       </div>
-      <div class="phi">🔒 Secure payment &nbsp;·&nbsp; Test mode: any valid card format accepted</div>
-      <button class="btn" id="pay_btn" onclick="submitPay('${fmt(amount)}')">Pay ${fmt(amount)} →</button>
+      <div class="phi">${ic.lock} Secure payment &nbsp;·&nbsp; Test mode: any valid card format accepted</div>
+      <button class="btn" id="pay_btn" onclick="submitPay('${fmt(amount)}')">Pay ${fmt(amount)} ${ic.arrow}</button>
     </div>`);
 }
 
-function fmtCard(el) {
-  let v = el.value.replace(/\D/g,'').slice(0,16);
-  el.value = v.match(/.{1,4}/g)?.join(' ') || v;
-}
-function fmtExp(el) {
-  let v = el.value.replace(/\D/g,'');
-  if (v.length > 2) v = v.slice(0,2)+' / '+v.slice(2,4);
-  el.value = v;
-}
+function fmtCard(el){let v=el.value.replace(/\D/g,'').slice(0,16);el.value=v.match(/.{1,4}/g)?.join(' ')||v;}
+function fmtExp(el){let v=el.value.replace(/\D/g,'');if(v.length>2)v=v.slice(0,2)+' / '+v.slice(2,4);el.value=v;}
 
 async function submitPay(fmtAmt) {
-  const nm = G('py_name').value.trim();
-  const cd = G('py_card').value.replace(/\s/g,'');
-  const ex = G('py_exp').value.replace(/[\s\/]/g,'');
-  const cv = G('py_cvv').value.trim();
-  let err = false;
-  if (!nm)          { G('py_name').classList.add('err'); err=true; } else G('py_name').classList.remove('err');
-  if (cd.length<13) { G('py_card').classList.add('err'); err=true; } else G('py_card').classList.remove('err');
-  if (ex.length<3)  { G('py_exp').classList.add('err');  err=true; } else G('py_exp').classList.remove('err');
-  if (cv.length<3)  { G('py_cvv').classList.add('err');  err=true; } else G('py_cvv').classList.remove('err');
-  if (err) return;
-
-  const btn = G('pay_btn');
-  btn.disabled = true; btn.textContent = 'Processing…';
+  const nm=G('py_name').value.trim(), cd=G('py_card').value.replace(/\s/g,''), ex=G('py_exp').value.replace(/[\s\/]/g,''), cv=G('py_cvv').value.trim();
+  let err=false;
+  if(!nm){G('py_name').classList.add('err');err=true;}else G('py_name').classList.remove('err');
+  if(cd.length<13){G('py_card').classList.add('err');err=true;}else G('py_card').classList.remove('err');
+  if(ex.length<3){G('py_exp').classList.add('err');err=true;}else G('py_exp').classList.remove('err');
+  if(cv.length<3){G('py_cvv').classList.add('err');err=true;}else G('py_cvv').classList.remove('err');
+  if(err)return;
+  const btn=G('pay_btn'); btn.disabled=true; btn.textContent='Processing…';
   await delay(1800);
-
-  G('pay_card').classList.add('done');
-  S.stage = 'paid';
-  S.busy = true; setActive(false);
-  addUser(`Payment of ${fmtAmt} processed ✓`);
-  const resp = await callAPI(`Payment was successful — please show the confirmation screen now`);
-  addBot(resp.message);
-  await executeAction(resp.action);
-  S.busy = false; setActive(true);
+  G('pay_card').classList.add('done'); S.stage='paid'; S.busy=true; setActive(false);
+  addUser(`Payment of ${fmtAmt} processed`);
+  const resp=await callAPI(`Payment was successful — please show the confirmation screen now`);
+  addBot(resp.message); await executeAction(resp.action); S.busy=false; setActive(true);
 }
 
 // ═══════════════════════════════════════════════
 // COMPONENT: CONFIRMATION
 // ═══════════════════════════════════════════════
 function renderConfirmation() {
-  if (G('conf_card')) return;
-  const first = S.u.name.split(' ')[0];
+  if(G('conf_card'))return;
+  const first=S.u.name.split(' ')[0];
   addComp(`
     <div class="card" id="conf_card">
       <div class="conf">
-        <div class="cico">
-          <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-        </div>
-        <div class="ch">You're all set, ${first}! 🎉</div>
+        <div class="cico">${ic.checkLg}</div>
+        <div class="ch">You're all set, ${first}!</div>
         <div class="cp">
           You've done the second most important thing by purchasing a life insurance policy — what comes first is staying healthy so your family and loved ones never have to use it<br><br>
           You will receive your policy copy, or hear from us if any additional information is needed, within the next <strong style="color:var(--tx)">24 hours</strong> — the team will reach out to you at <span class="ce">${S.u.email}</span><br><br>
@@ -1279,39 +1028,23 @@ function renderConfirmation() {
         </div>
       </div>
     </div>`);
-  S.stage = 'completed';
-  inp.placeholder = 'Your application is being processed…';
-  inp.disabled = true;
-  snd.disabled = true;
+  S.stage='completed'; inp.placeholder='Your application is being processed…'; inp.disabled=true; snd.disabled=true;
 }
 
 // ═══════════════════════════════════════════════
 // INPUT EVENTS
 // ═══════════════════════════════════════════════
-inp.addEventListener('input', () => {
-  resizeInp();
-  snd.disabled = !inp.value.trim() || S.busy;
-});
-inp.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendUserMsg(); }
-});
-snd.addEventListener('click', sendUserMsg);
+inp.addEventListener('input',()=>{resizeInp();snd.disabled=!inp.value.trim()||S.busy;});
+inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendUserMsg();}});
+snd.addEventListener('click',sendUserMsg);
 
 // ═══════════════════════════════════════════════
 // INIT — welcome sequence
 // ═══════════════════════════════════════════════
-setTimeout(() => { typing.style.display = 'flex'; scroll(); }, 500);
-setTimeout(() => {
-  typing.style.display = 'none';
-  addBot("Welcome to Life Guard 👋<br>Let's start your life insurance journey with a few simple questions");
-}, 1800);
-setTimeout(() => { typing.style.display = 'flex'; scroll(); }, 2200);
-setTimeout(() => {
-  typing.style.display = 'none';
-  addBot("What are you seeking from your life insurance policy?");
-  renderPlans();
-  setActive(true);
-}, 3600);
+setTimeout(()=>{typing.style.display='flex';scroll();},500);
+setTimeout(()=>{typing.style.display='none';addBot("Welcome to Life Guard — let's start your life insurance journey with a few simple questions");},1800);
+setTimeout(()=>{typing.style.display='flex';scroll();},2200);
+setTimeout(()=>{typing.style.display='none';addBot("What are you seeking from your life insurance policy?");renderPlans();setActive(true);},3600);
 </script>
 </body>
 </html>
