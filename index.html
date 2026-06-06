@@ -26,7 +26,7 @@ body{height:100%;background:var(--bg);color:var(--tx);font-family:'Inter',ui-san
 .row.u{justify-content:flex-end}
 .av{width:28px;height:28px;border-radius:50%;background:var(--aa);border:1.5px solid var(--a);display:grid;place-items:center;flex-shrink:0;color:var(--a)}
 .av svg{width:13px;height:13px}
-.bbl{max-width:80%;padding:11px;border-radius:14px;font-size:14px;line-height:1.6}
+.bbl{max-width:80%;padding:12px;border-radius:14px;font-size:14px;line-height:1.6}
 .row:not(.u) .bbl{background:var(--bb);border:1px solid var(--bd);border-bottom-left-radius:3px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
 .row.u .bbl{background:var(--a);color:#0A1A15;font-weight:500;border-bottom-right-radius:3px}
 .comp{margin-left:36px;margin-bottom:4px;animation:pop .22s ease}
@@ -68,11 +68,11 @@ body{height:100%;background:var(--bg);color:var(--tx);font-family:'Inter',ui-san
 
 /* ── form fields ── */
 .flds{display:flex;flex-direction:column;gap:9px}
-.fi{width:100%;background:var(--s2);border:1.5px solid var(--bd);border-radius:9px;padding:12px;color:var(--tx);font:inherit;outline:none;transition:border-color .2s;-webkit-appearance:none;appearance:none}
+.fi{width:100%;background:var(--s2);border:1.5px solid var(--bd);border-radius:9px;padding:11px;color:var(--tx);font:inherit;outline:none;transition:border-color .2s;-webkit-appearance:none;appearance:none}
 .fi:focus{border-color:var(--a)}.fi.err{border-color:var(--red)}
 .fi::placeholder{color:var(--t3)}
 .pfxw{position:relative}
-.pfx{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--t2);pointer-events:none;font-size:13px}
+.pfx{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--t2);pointer-events:none;font-size:13px}
 .fi.pl{padding-left:44px}
 .tgr{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .tgl{font-size:12px;color:var(--t2);flex-shrink:0}
@@ -156,10 +156,10 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 
 /* ── payment ── */
 .cnets{display:flex;gap:6px;margin-bottom:13px}
-.cnet{padding:6px;border:1px solid var(--bd);border-radius:5px;font-size:10px;font-weight:700;color:var(--t3);display:flex;align-items:center;justify-content:center}
+.cnet{padding:4px;border:1px solid var(--bd);border-radius:5px;font-size:10px;font-weight:700;color:var(--t3);display:flex;align-items:center;justify-content:center}
 .phi{text-align:center;font-size:10px;color:var(--t3);margin-top:10px;display:flex;align-items:center;justify-content:center;gap:5px}
 .pay2{display:flex;gap:9px}.pay2 .fi{flex:1}
-.payamt{display:flex;justify-content:space-between;align-items:center;background:var(--s2);border:1px solid var(--bd);border-radius:9px;padding:13px;margin-bottom:12px}
+.payamt{display:flex;justify-content:space-between;align-items:center;background:var(--s2);border:1px solid var(--bd);border-radius:9px;padding:12px;margin-bottom:12px}
 .payamt-l{font-size:11px;color:var(--t2)}
 .payamt-v{font-size:18px;font-weight:700;color:var(--a)}
 
@@ -784,7 +784,9 @@ async function acceptInvQ() {
 function renderIllustration() {
   if(G('ill_card'))return;
   const rows=buildIllustration(), isP=S.u.plan==='protection';
-  const hdr=isP?'<th>Yr</th><th>Age</th><th>Premiums paid</th><th>Life cover</th>':'<th>Yr</th><th>Age</th><th>Premiums paid</th><th>Life cover</th><th>Maturity value</th>';
+  const hdr=isP
+    ?'<th>Yr</th><th>Age</th><th>Premiums paid</th><th>Life cover</th>'
+    :'<th>Yr</th><th>Age</th><th>Premiums paid</th><th>Life cover</th><th>Maturity value</th>';
   const tBody=rows.map(r=>`<tr><td>${r.y}</td><td>${r.age}</td><td>${fmt(r.paid)}</td><td>${fmt(r.cover)}</td>${isP?'':`<td>${fmt(r.mat)}</td>`}</tr>`).join('');
   const last=rows[rows.length-1];
   const totRow=`<tr class="tot"><td>Total</td><td>—</td><td>${fmt(last.paid)}</td><td>${fmt(last.cover)}</td>${isP?'':`<td>${fmt(last.mat)}</td>`}</tr>`;
