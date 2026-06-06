@@ -197,7 +197,6 @@ const FUNDS = {
   passive:   { label:'Passive',    rate:4.96, eq:30, db:70 }
 };
 
-// Age-based mortality rates ($ per $1000 sum assured per year)
 const AGE_RATES = {
   18:0.35,19:0.36,20:0.37,21:0.38,22:0.39,23:0.40,24:0.41,25:0.42,
   26:0.46,27:0.48,28:0.50,29:0.52,30:0.54,
@@ -215,7 +214,7 @@ const AGE_RATES = {
 // STATE
 // ═══════════════════════════════════════════════
 const S = {
-  conv: [],           // full conversation history
+  conv: [],
   u: { name:'', email:'', dob:'', gender:'male', income:0, smoker:false, plan:'' },
   q: { cover:0, term:20, premium:0, fund:'balanced' },
   stage: 'start',
@@ -251,7 +250,7 @@ function getAge(dob) {
 // ═══════════════════════════════════════════════
 function calcProtPremium(cover, age, term, smoker, gender) {
   const base = AGE_RATES[Math.round(age)] || 1.0;
-  const tf = 0.78 + (term / 30) * 0.52; // term factor: ~0.78 at 5yr, ~1.30 at 30yr
+  const tf = 0.78 + (term / 30) * 0.52;
   let annual = (cover / 1000) * base * tf;
   if (smoker) annual *= 1.35;
   if (gender === 'female') annual *= 0.85;
@@ -270,7 +269,7 @@ function calcInvMaturity(premium, term, fundKey) {
   let fv = 0;
   for (let y = 1; y <= term; y++) {
     for (let m = 0; m < 12; m++) fv = (fv + premium) * (1 + r);
-    fv *= 0.99; // 1% annual mortality charge on fund value
+    fv *= 0.99;
   }
   return Math.round(fv);
 }
@@ -350,7 +349,7 @@ JOURNEY LOGIC (follow stage strictly):
 - Stage "paid": MUST trigger show_confirmation
 
 RULES:
-- Keep responses warm and concise (2–3 sentences)
+- Keep responses warm and concise (2–3 sentences); never end a sentence or message with a period — drop all terminal punctuation for a casual, conversational feel
 - Never invent premium or maturity numbers — the UI calculates these
 - Acknowledge death/disability topics with sensitivity
 - If asked off-topic questions, acknowledge briefly and redirect to insurance
@@ -453,7 +452,6 @@ async function executeAction(action) {
   }
 }
 
-// Typed message flow
 async function sendUserMsg() {
   const text = inp.value.trim();
   if (!text || S.busy) return;
@@ -466,7 +464,6 @@ async function sendUserMsg() {
   S.busy = false; setActive(true);
 }
 
-// Button/component action flow (message already shown)
 async function sendAction(displayMsg, apiMsg) {
   if (S.busy) return;
   S.busy = true; setActive(false);
@@ -523,7 +520,7 @@ async function pickPlan(plan, btn) {
     investment:  'Grow my wealth — investment with life cover',
     savings:     'Save for a rainy day — guaranteed savings'
   };
-  await sendAction(labels[plan], `I've selected the ${plan} plan: ${labels[plan]}. Please proceed`);
+  await sendAction(labels[plan], `I've selected the ${plan} plan: ${labels[plan]} — please proceed`);
 }
 
 // ═══════════════════════════════════════════════
@@ -598,7 +595,6 @@ async function submitInfo() {
   const email = G('f_email').value.trim();
   const dob   = G('f_dob').value.trim();
   const inc   = Number(G('f_inc').value);
-  // Validate
   let err = false;
   if (name.length < 2)         { G('f_name').classList.add('err');  err=true; } else G('f_name').classList.remove('err');
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { G('f_email').classList.add('err'); err=true; } else G('f_email').classList.remove('err');
@@ -609,13 +605,12 @@ async function submitInfo() {
   S.u = { ...S.u, name, email, dob, income: inc };
   const age = getAge(dob);
 
-  // Set smart quote defaults
   if (S.u.plan === 'protection') {
     S.q.cover = Math.min(120 * inc, 1000000);
     S.q.term  = 20;
   } else {
     S.q.premium = Math.max(100, Math.min(10000, Math.round(inc * 0.1)));
-    S.q.term    = S.u.plan === 'savings' ? 10 : 10;
+    S.q.term    = 10;
   }
 
   G('info_card').classList.add('done');
@@ -623,7 +618,7 @@ async function submitInfo() {
   S.busy = true; setActive(false);
   addUser(`Details submitted ✓`);
   const resp = await callAPI(
-    `My details: Name="${name}", DOB=${dob} (age ${age}), Gender=${S.u.gender}, Income=$${inc}/mo, Smoker=${S.u.smoker?'yes':'no'}. Plan: ${S.u.plan}. Please show me my ${S.u.plan} quote.`
+    `My details: Name="${name}", DOB=${dob} (age ${age}), Gender=${S.u.gender}, Income=$${inc}/mo, Smoker=${S.u.smoker?'yes':'no'} — Plan: ${S.u.plan} — please show me my ${S.u.plan} quote`
   );
   addBot(resp.message);
   await executeAction(resp.action);
@@ -697,7 +692,7 @@ async function acceptProtQ() {
   S.stage = 'quote_accepted';
   S.busy = true; setActive(false);
   addUser(`Protection plan confirmed — ${fmt(cover)} cover, ${term}-year term, ${fmt(mp)}/month`);
-  const resp = await callAPI(`I've accepted the Protection Plan. Cover: ${fmt(cover)}, term: ${term} years, premium: ${fmt(mp)}/month. Please show me the policy illustration`);
+  const resp = await callAPI(`I've accepted the Protection Plan — cover: ${fmt(cover)}, term: ${term} years, premium: ${fmt(mp)}/month — please show me the policy illustration`);
   addBot(resp.message);
   await executeAction(resp.action);
   S.busy = false; setActive(true);
@@ -736,7 +731,7 @@ function renderSavQuote() {
       </div>
       <div class="qrow">
         <div><div class="ql">Guaranteed maturity</div><div class="qv" id="sv_mv">${fmt(mat)}</div><div class="qs">at end of term</div></div>
-        <div style="text-align:right"><div class="ql">Total Paid</div><div class="qv" id="sv_tp">${fmt(prem*term*12)}</div><div class="qs" id="sv_ts">over ${term} years</div></div>
+        <div style="text-align:right"><div class="ql">Total paid</div><div class="qv" id="sv_tp">${fmt(prem*term*12)}</div><div class="qs" id="sv_ts">over ${term} years</div></div>
       </div>
 
       <div class="qdiv"></div>
@@ -769,7 +764,7 @@ async function acceptSavQ() {
   S.stage = 'quote_accepted';
   S.busy = true; setActive(false);
   addUser(`Savings plan confirmed — ${fmt(premium)}/month, ${term}-year term`);
-  const resp = await callAPI(`I've accepted the savings plan. Premium: ${fmt(premium)}/month, term: ${term} years. Please show me the illustration`);
+  const resp = await callAPI(`I've accepted the savings plan — premium: ${fmt(premium)}/month, term: ${term} years — please show me the illustration`);
   addBot(resp.message);
   await executeAction(resp.action);
   S.busy = false; setActive(true);
@@ -820,7 +815,7 @@ function renderInvQuote() {
 
       <div class="qrow">
         <div><div class="ql">Life cover</div><div class="qv" id="iv_cv">${fmt(cover)}</div></div>
-        <div style="text-align:right"><div class="ql">Projected Maturity</div><div class="qv" id="iv_mv">${fmt(mat)}</div><div class="qs" id="iv_ms">after ${term} yrs · Balanced</div></div>
+        <div style="text-align:right"><div class="ql">Projected maturity</div><div class="qv" id="iv_mv">${fmt(mat)}</div><div class="qs" id="iv_ms">after ${term} yrs · Balanced</div></div>
       </div>
       <div class="qrow">
         <div><div class="ql">Total premiums</div><div class="qv" id="iv_tp">${fmt(prem*term*12)}</div></div>
@@ -835,7 +830,7 @@ function renderInvQuote() {
 
       <div class="warn">
         <svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
-        Past returns are not indicative of any future gains. Please invest as per your risk appetite
+        Past returns are not indicative of future gains — please invest as per your risk appetite
       </div>
 
       <button class="btn" onclick="acceptInvQ()">This looks good, proceed →</button>
@@ -870,7 +865,7 @@ async function acceptInvQ() {
   S.stage = 'quote_accepted';
   S.busy = true; setActive(false);
   addUser(`Investment plan confirmed — ${fmt(premium)}/month, ${term} yrs, ${FUNDS[fund].label} Fund`);
-  const resp = await callAPI(`I've accepted the investment plan. Premium: ${fmt(premium)}/month, term: ${term} years, fund: ${FUNDS[fund].label} (${FUNDS[fund].rate}%), projected maturity: ${fmt(mat)}. Please show the illustration`);
+  const resp = await callAPI(`I've accepted the investment plan — premium: ${fmt(premium)}/month, term: ${term} years, fund: ${FUNDS[fund].label} (${FUNDS[fund].rate}%), projected maturity: ${fmt(mat)} — please show the illustration`);
   addBot(resp.message);
   await executeAction(resp.action);
   S.busy = false; setActive(true);
@@ -919,7 +914,7 @@ function renderIllustration() {
 async function agreeIll() {
   G('ill_card').classList.add('done');
   S.stage = 'illustration_agreed';
-  await sendAction('Policy illustration agreed ✓', "I've reviewed and agreed to the policy illustration. Please proceed to the medical questionnaire");
+  await sendAction('Policy illustration agreed ✓', "I've reviewed and agreed to the policy illustration — please proceed to the medical questionnaire");
 }
 
 // ═══════════════════════════════════════════════
@@ -1016,7 +1011,7 @@ async function submitMed() {
   S.busy = true; setActive(false);
   addUser('Medical information submitted ✓');
   const summary = `Height:${h}cm, Weight:${w}kg, Alcohol:${mv.alc}, Chronic conditions:${mv.cc}, Hospitalised:${mv.hosp}, Medication:${mv.medic}, Family history:${mv.fhist}, Hazardous activities:${mv.haz}`;
-  const resp = await callAPI(`Medical questionnaire complete. ${summary}. Please proceed to document upload`);
+  const resp = await callAPI(`Medical questionnaire complete — ${summary} — please proceed to document upload`);
   addBot(resp.message);
   await executeAction(resp.action);
   S.busy = false; setActive(true);
@@ -1033,10 +1028,11 @@ function renderUpload() {
       <div class="upz" id="upz" onclick="G('pp_inp').click()">
         <div class="upi">🛂</div>
         <div class="upt">Upload your passport</div>
-        <div class="ups">Tap to select — JPG or PNG</div>
+        <div class="ups">Tap to select — JPG, PNG or PDF</div>
       </div>
-      <input type="file" id="pp_inp" accept="image/*" style="display:none" onchange="handlePassport(this)">
+      <input type="file" id="pp_inp" accept="image/*,application/pdf" style="display:none" onchange="handlePassport(this)">
       <img id="pprev" alt="Passport preview">
+      <div id="pdf_tag" style="display:none;margin-top:10px;padding:10px 12px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;font-size:12px;color:var(--t2)"></div>
       <div class="nck" id="nck"></div>
       <button class="btn" id="up_btn" style="display:none" onclick="confirmPassport()">Confirmed, proceed →</button>
     </div>`);
@@ -1047,20 +1043,26 @@ async function handlePassport(input) {
   if (!file) return;
   G('upz').classList.add('active');
 
+  const isPDF = file.type === 'application/pdf';
   const reader = new FileReader();
   reader.onload = async e => {
     const b64 = e.target.result.split(',')[1];
     const mtype = file.type || 'image/jpeg';
-    G('pprev').src = e.target.result;
-    G('pprev').style.display = 'block';
+    if (isPDF) {
+      G('pprev').style.display = 'none';
+      G('pdf_tag').textContent = '📄 ' + file.name;
+      G('pdf_tag').style.display = 'block';
+    } else {
+      G('pprev').src = e.target.result;
+      G('pprev').style.display = 'block';
+    }
 
     S.busy = true; setActive(false);
     showTyping(true);
 
-    const checkMsg = `The user has uploaded their passport. Please extract the name from the passport (from the MRZ or data page) and check if it matches the application name "${S.u.name}". State whether they match or not, and be specific`;
+    const checkMsg = `The user has uploaded their passport — please extract the name from the passport (from the MRZ or data page) and check if it matches the application name "${S.u.name}" — state whether they match or not, and be specific`;
 
     try {
-      // Special call: include image data with the message
       S.conv.push({ role:'user', content: checkMsg });
       const body = {
         messages: S.conv,
@@ -1085,7 +1087,7 @@ async function handlePassport(input) {
         nck.className = 'nck fail'; nck.innerHTML = '✗ Name mismatch — please check and re-upload'; nck.style.display = 'flex';
       }
     } catch(err) {
-      addBot("There was an issue verifying your document. Please try uploading again");
+      addBot("There was an issue verifying your document — please try uploading again");
     } finally {
       showTyping(false);
       S.busy = false; setActive(true);
@@ -1097,7 +1099,7 @@ async function handlePassport(input) {
 async function confirmPassport() {
   G('up_card').classList.add('done');
   S.stage = 'doc_uploaded';
-  await sendAction('Passport verified ✓', "My passport has been verified successfully. Please proceed to the digital signature");
+  await sendAction('Passport verified ✓', "My passport has been verified successfully — please proceed to the digital signature");
 }
 
 // ═══════════════════════════════════════════════
@@ -1107,7 +1109,7 @@ function renderSignature() {
   if (G('sig_card')) return;
   addComp(`
     <div class="card" id="sig_card">
-      <div class="ctag">Digital Signature</div>
+      <div class="ctag">Digital signature</div>
       <p style="font-size:12px;color:var(--t2);margin-bottom:12px;line-height:1.6">By signing below, you confirm that all information provided in this application is accurate and complete to the best of your knowledge</p>
       <canvas id="sigc"></canvas>
       <div class="sgh">Draw your signature above</div>
@@ -1164,7 +1166,7 @@ async function submitSig() {
   S.sigData = c.toDataURL();
   G('sig_card').classList.add('done');
   S.stage = 'signed';
-  await sendAction('Signature submitted ✓', "I've provided my digital signature. Please proceed to payment");
+  await sendAction('Signature submitted ✓', "I've provided my digital signature — please proceed to payment");
 }
 
 // ═══════════════════════════════════════════════
@@ -1227,7 +1229,7 @@ async function submitPay(fmtAmt) {
   S.stage = 'paid';
   S.busy = true; setActive(false);
   addUser(`Payment of ${fmtAmt} processed ✓`);
-  const resp = await callAPI(`Payment was successful. Please show the confirmation screen now`);
+  const resp = await callAPI(`Payment was successful — please show the confirmation screen now`);
   addBot(resp.message);
   await executeAction(resp.action);
   S.busy = false; setActive(true);
@@ -1247,9 +1249,9 @@ function renderConfirmation() {
         </div>
         <div class="ch">You're all set, ${first}! 🎉</div>
         <div class="cp">
-          You've done the second most important thing by purchasing a life insurance policy. What comes first is staying healthy so your family and loved ones never have to use this policy<br><br>
-          You will receive your policy copy, or hear from us in case any additional information is needed, within the next <strong style="color:var(--tx)">24 hours</strong>. The team will reach out to you at <span class="ce">${S.u.email}</span><br><br>
-          Conversely, you can reach out to us at <span class="ce">help@life-guard.com</span>. Please use the same email address as on your application — it helps us identify you faster
+          You've done the second most important thing by purchasing a life insurance policy — what comes first is staying healthy so your family and loved ones never have to use it<br><br>
+          You will receive your policy copy, or hear from us if any additional information is needed, within the next <strong style="color:var(--tx)">24 hours</strong> — the team will reach out to you at <span class="ce">${S.u.email}</span><br><br>
+          You can also reach us at <span class="ce">help@life-guard.com</span> — please use the same email address as on your application so we can identify you faster
         </div>
       </div>
     </div>`);
