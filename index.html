@@ -318,8 +318,6 @@ function buildIllustration() {
 // CARD LOCKING + EDITING
 // Double-click (desktop) or double-tap (mobile) a locked card to edit it
 // ═══════════════════════════════════════════════
-const CARD_ORDER = ['plan_card','info_card','prot_card','sav_card','inv_card','ill_card','med_card','up_card','sig_card'];
-
 const STAGE_MAP = {
   plan_card: 'start',
   info_card: 'plan_selected',
@@ -334,14 +332,24 @@ const STAGE_MAP = {
 
 function lockCard(id) {
   G(id).classList.add('done');
+  const s = document.createElement('div');
+  s.dataset.sentinel = id;
+  s.dataset.convLen = S.conv.length;
+  s.style.display = 'none';
+  G(id).closest('.comp').after(s);
 }
 
 function editCard(id, resetStage) {
   const card = G(id);
   if (!card || S.busy) return;
   card.classList.remove('done');
-  const idx = CARD_ORDER.indexOf(id);
-  CARD_ORDER.slice(idx + 1).forEach(cid => { const el=G(cid); if(el) el.closest('.comp')?.remove(); });
+  const sentinel = msgs.querySelector(`[data-sentinel="${id}"]`);
+  if (sentinel) {
+    const cl = parseInt(sentinel.dataset.convLen);
+    if (!isNaN(cl)) S.conv = S.conv.slice(0, cl);
+    while (sentinel.nextSibling) sentinel.nextSibling.remove();
+    sentinel.remove();
+  }
   if (id==='ill_card') { const chk=G('ill_chk'); if(chk){chk.checked=false;G('ill_btn').disabled=true;} }
   if (id==='up_card') {
     G('pprev').style.display='none'; G('pprev').src='';
