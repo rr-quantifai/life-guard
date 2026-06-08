@@ -132,6 +132,20 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 .ch{font-size:17px;font-weight:700;margin-bottom:10px}
 .cp{font-size:13px;color:var(--t2);line-height:1.7}
 .ce{color:var(--a);font-weight:500}
+.nom-row{padding-bottom:13px;margin-bottom:13px;border-bottom:1px solid var(--bd)}
+.nom-row:last-child{border-bottom:none;padding-bottom:0;margin-bottom:0}
+.nom-spl{display:flex;gap:9px;margin-top:9px;align-items:center}
+.nom-del{background:none;border:1.5px solid var(--bd);border-radius:9px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t3);font-size:18px;transition:all .2s;flex-shrink:0}
+.nom-del:hover{border-color:var(--red);color:var(--red)}
+.nom-pct{position:relative;flex:0 0 78px}
+.nom-pct .fi{padding-right:22px;text-align:right}
+.nom-pct-sym{position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--t2);font-size:12px;pointer-events:none;font-weight:500}
+.nom-spl select.fi{-webkit-appearance:auto;appearance:auto}
+.nom-bar{height:4px;background:var(--s4);border-radius:2px;margin:13px 0 8px;overflow:hidden}
+.nom-bar-fill{height:100%;border-radius:2px;background:var(--a);transition:width .35s,background .2s}
+.nom-stats{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:4px}
+.nom-stat-l{font-size:10px;color:var(--t2);text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-bottom:3px}
+.nom-stat-v{font-size:17px;font-weight:700}
 @keyframes pop{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
 @keyframes bnc{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-5px);opacity:1}}
 </style>
@@ -198,7 +212,7 @@ const S = {
   conv:[], u:{name:'',email:'',dob:'',gender:'male',income:0,smoker:false,plan:''},
   q:{cover:0,term:20,premium:0,fund:'balanced'}, stage:'start', busy:false,
   medVals:{alc:'none',cc:'no',hosp:'no',medic:'no',fhist:'no',haz:'no'},
-  nameMatched:false, sigData:null
+  activeCard:null, nameMatched:false, sigData:null, nominees:[]
 };
 let _attachFile = null;
 
@@ -233,6 +247,11 @@ function calcInvMaturity(premium,term,fundKey){
   return Math.round(fv);
 }
 
+function calcSurrenderValue(mat,year,term){
+  const factor=1-Math.pow(1-year/term,2);
+  return Math.round(mat*factor);
+}
+
 function buildIllustration(){
   const {plan,dob,smoker,gender}=S.u,{cover,term,premium,fund}=S.q,age=getAge(dob),rows=[];
   if(plan==='protection'){
@@ -240,10 +259,10 @@ function buildIllustration(){
     for(let y=1;y<=term;y++){totalPaid+=mp*12;rows.push({y,age:age+y,paid:totalPaid,cover,mat:null});}
   }else if(plan==='savings'){
     const r=0.01/12;let fv=0,totalPaid=0;
-    for(let y=1;y<=term;y++){for(let m=0;m<12;m++){fv=(fv+premium)*(1+r);totalPaid+=premium;}rows.push({y,age:age+y,paid:totalPaid,cover:Math.min(120*premium,1e6),mat:Math.round(fv)});}
+    for(let y=1;y<=term;y++){for(let m=0;m<12;m++){fv=(fv+premium)*(1+r);totalPaid+=premium;}const svS=calcSurrenderValue(Math.round(fv),y,term);rows.push({y,age:age+y,paid:totalPaid,cover:Math.min(120*premium,1e6),mat:Math.round(fv),sv:svS});}
   }else if(plan==='investment'){
     const r=FUNDS[fund].rate/100/12;let fv=0,totalPaid=0;
-    for(let y=1;y<=term;y++){for(let m=0;m<12;m++){fv=(fv+premium)*(1+r);totalPaid+=premium;}fv*=0.99;rows.push({y,age:age+y,paid:totalPaid,cover:Math.min(120*premium,1e6),mat:Math.round(fv)});}
+    for(let y=1;y<=term;y++){for(let m=0;m<12;m++){fv=(fv+premium)*(1+r);totalPaid+=premium;}fv*=0.99;const svI=calcSurrenderValue(Math.round(fv),y,term);rows.push({y,age:age+y,paid:totalPaid,cover:Math.min(120*premium,1e6),mat:Math.round(fv),sv:svI});}
   }
   return rows;
 }
@@ -252,19 +271,21 @@ function buildIllustration(){
 const STAGE_MAP={
   plan_card:'start', info_card:'plan_selected',
   prot_card:'info_collected', sav_card:'info_collected', inv_card:'info_collected',
-  ill_card:'quote_accepted', med_card:'illustration_agreed', sig_card:'doc_uploaded'
+  ill_card:'quote_accepted', med_card:'illustration_agreed', sig_card:'doc_uploaded',
+  nom_card:'paid'
 };
 
 function lockCard(id){
   G(id).classList.add('done');
+  if(S.activeCard===id)S.activeCard=null;
   if(msgs.querySelector(`[data-sentinel="${id}"]`))return;
   const s=document.createElement('div');
   s.dataset.sentinel=id; s.dataset.convLen=S.conv.length; s.style.display='none';
   G(id).closest('.comp').after(s);
 }
 
-function editCard(id,resetStage){
-  const card=G(id); if(!card||S.busy)return;
+function editCard(id,resetStage,force=false){
+  const card=G(id); if(!card||(S.busy&&!force))return;
   card.classList.remove('done');
   const sentinel=msgs.querySelector(`[data-sentinel="${id}"]`);
   if(sentinel){
@@ -276,6 +297,7 @@ function editCard(id,resetStage){
   if(id==='ill_card'){const chk=G('ill_chk');if(chk){chk.checked=false;G('ill_btn').disabled=true;}}
   if(id==='sig_card'){clearSig();S.sigData=null;}
   if(id==='info_card')setTimeout(checkInfo,50);
+  S.activeCard=id;
   S.stage=resetStage; S.busy=false; setActive(true);
   card.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
@@ -304,53 +326,101 @@ function buildSysPrompt(){
 
 ${ctx}
 Current journey stage: ${S.stage}
+Active card awaiting confirmation: ${S.activeCard||'none'}
+Passport verified: ${S.nameMatched}
 
 ALWAYS respond ONLY in valid JSON — no extra text, no markdown:
 {"message":"your conversational text","action":{"type":"ACTION_TYPE","data":{}}}
 
 VALID ACTION TYPES (choose exactly one):
-- none               → just a conversational response
-- show_plan_selector → show the 3 plan choice cards
-- show_info_form     → show the user details collection form
+- none                 → just a conversational response
+- show_plan_selector   → show the 3 plan choice cards
+- show_info_form       → show the user details collection form
 - show_protection_quote
 - show_savings_quote
 - show_investment_quote
-- show_illustration  → year-by-year policy illustration
-- show_medical       → medical questionnaire
-- show_signature     → digital signature pad
-- show_payment       → payment form
-- show_confirmation  → final confirmation screen
-- select_plan        → select a plan from natural language or document analysis; data: {"plan":"protection"|"savings"|"investment"}
+- show_illustration    → year-by-year policy illustration
+- show_medical         → medical questionnaire
+- show_signature       → digital signature pad
+- show_payment         → payment form
+- show_confirmation    → final confirmation screen
+- select_plan          → select a plan; data: {"plan":"protection"|"savings"|"investment"}
+- prefill_info         → pre-fill info card from conversation or document; data: {"name":"","email":"","dob":"DD/MM/YYYY","gender":"male|female","income":0,"smoker":false} — include only known fields
+- prefill_quote        → adjust active quote card sliders; data: {"cover":0,"term":0,"premium":0,"fund":"aggressive|balanced|passive"} — include only known fields
+- prefill_medical      → pre-fill medical card; data: {"height":0,"weight":0,"alc":"none|occasional|regular","cc":"yes|no","hosp":"yes|no","medic":"yes|no","fhist":"yes|no","haz":"yes|no"} — include only known fields
+- confirm_active_card  → programmatically confirm the active card — never use for plan_card, nom_card, sig_card or pay_card
+- passport_verified         → emit when passport name is confirmed to match the application name "${u.name}"
+- reset_to_plan_selection   → emit when user wants to change plan but hasn't specified which — returns them to the plan selector card
+- show_nominee              → collect beneficiary/nominee details after payment
 
 PLAN TERMINOLOGY — map these to the correct plan type:
 - protection: "term plan", "term insurance", "term life", "pure protection", "pure life cover"
 - savings: "endowment", "money back", "guaranteed savings", "savings plan"
 - investment: "ULIP", "unit linked", "market linked", "wealth plan", "investment plan"
-If the user expresses a clear plan preference in natural language at any stage, use select_plan immediately
+If the user expresses a clear plan preference in natural language at any stage:
+- If u.name is not yet set (no progress to lose): emit select_plan immediately
+- If u.name is already set (user has filled their details or beyond): first warn that switching plans will clear current progress and ask if they want to proceed (action none) — only emit select_plan on the next turn if the user confirms
+- If the user declines, acknowledge and continue the current journey normally
 
-DOCUMENT ANALYSIS — if the user shares an insurance document:
-- Extract: insurer, plan type, sum assured, premium, policy term, key features
-- Compare honestly with their current journey if active
-- Give a clear verdict on which suits them better and why
-- If the document is a different plan type and the user wants to compare properly, trigger select_plan with the detected plan type
+DOCUMENT HANDLING — for any document shared at any stage:
+- Passport + passportVerified false + info card not yet filled: ask "Should I use this to fill in your details?" — on yes, emit prefill_info with extracted name, dob, gender
+- Passport + passportVerified false + info card already filled: verify name matches "${u.name}" — if match emit passport_verified; if mismatch tell the user clearly
+- Passport + passportVerified already true: acknowledge and continue
+- Insurance document: run a structured comparison:
+  1. Extract: insurer, plan type, sum assured, monthly premium, policy term remaining, key features, visible exclusions
+  2. Compare against Life Guard best-fit plan or active journey plan:
+     · Sum assured: which is higher and by how much
+     · Monthly cost: which is cheaper and by how much
+     · Plan type: like-for-like or different types — explain the difference if so
+     · Term: years remaining on existing policy vs fresh start
+     · Portability: is the existing policy group/employer-tied?
+  3. Give an honest verdict — if the existing policy is genuinely better value, say so clearly; do not oversell Life Guard
+  4. If plan type differs and user wants a proper comparison: emit select_plan with the detected type
+  5. If user decides to proceed with Life Guard: continue the journey normally
 
-JOURNEY LOGIC (follow stage strictly):
-- Stage "plan_selected": MUST trigger show_info_form
-- Stage "info_collected": MUST trigger show_${u.plan||'[plan]'}_quote
-- Stage "quote_accepted": MUST trigger show_illustration
-- Stage "illustration_agreed": MUST trigger show_medical
-- Stage "medical_done": ask the user to share their passport in the chat using the paperclip attachment button for identity verification — action must be none
-- Stage "doc_uploaded": MUST trigger show_signature
-- Stage "signed": MUST trigger show_payment
-- Stage "paid": MUST trigger show_confirmation
+JOURNEY LOGIC — cards are the confirmation gates; guide the user to each one through conversation:
+- Stage "plan_selected": if user details are unknown emit show_info_form; if details are already known from conversation emit prefill_info directly — it renders the form automatically
+- Stage "info_collected": DO NOT show the quote immediately — first run a brief needs assessment in one message:
+  Ask: (1) any outstanding mortgage or total loans, (2) number of financial dependents, (3) any existing personal life insurance with sum assured and years remaining
+  Note: employer/group insurance is NOT personal coverage — flag this if mentioned
+  Once answered or skipped: emit show_${u.plan||'[plan]'}_quote; then emit prefill_quote with adjusted cover:
+  Adjusted cover = min(max(10 × income × 12 + outstanding_loans − existing_personal_cover, 50000), 1000000)
+  Briefly explain the number: "this replaces your income for 10 years, covers your loans, and accounts for your existing policy"
+  If user skips or already addressed these in conversation: proceed with default cover
+- Stage "quote_accepted": trigger show_illustration
+- Stage "illustration_agreed": emit show_medical; on the following turn if medical info is known emit prefill_medical
+- Stage "medical_done" + passportVerified false: ask user to share passport via the paperclip button — action none
+- If user wants to change plan but hasn't specified which one: first warn that current progress will be cleared and ask if they want to proceed (action none) — only emit reset_to_plan_selection on the next turn if the user confirms
+- Stage "medical_done" + passportVerified true: trigger show_signature directly
+- Stage "doc_uploaded": trigger show_signature
+- Stage "signed": trigger show_payment
+- Stage "paid": trigger show_nominee
+- Stage "nominee_done": trigger show_confirmation
+
+CONFIRMATION DETECTION — when activeCard is set and is not plan_card, nom_card, sig_card or pay_card:
+- User's message clearly and solely expresses intent to confirm the current card (e.g. "yes", "proceed", "looks good", "confirm", "go ahead", "that's right", "sure", "fine") with no other content → emit confirm_active_card
+- If "yes" or similar is answering a specific question you just asked (e.g. smoker status, hazardous activities), treat it as a conversational answer — do NOT emit confirm_active_card
+- plan_card active: tell the user to pick from the plan options on the card above
+- sig_card active: tell the user to draw their signature on the canvas
+- pay_card active: tell the user to fill in their card details
+
+SENSITIVE SCENARIOS:
+- Recent bereavement mentioned: acknowledge the loss warmly and pause the journey — do not push plan selection until the user signals they are ready to continue
+- User mentions a serious or terminal diagnosis: express empathy; note that pre-existing conditions must be disclosed on the medical form and may affect coverage terms; do not proceed without their acknowledgment
+- Monthly premium would exceed 20% of stated income: flag affordability before showing the quote; suggest adjusting cover or term to bring the premium within reach
+- User expresses anxiety about discussing death or mortality: gently reframe — the policy is an act of love and care for the people who depend on them, not a prediction
+- User mentions they cannot afford much: help them find the minimum viable coverage rather than defaulting to 120× income
 
 RULES:
 - Keep responses warm and concise (2–3 sentences); never end a sentence or message with a period — drop all terminal punctuation for a casual, conversational feel
 - Never invent premium or maturity numbers — the UI calculates these
+- When pre-filling a card, narrate exactly what you've filled in and ask the user to review before confirming
+- Collect any information naturally through conversation — once you have enough to fill a card, emit the prefill action and ask for confirmation
 - Acknowledge death/disability topics with sensitivity
 - If asked off-topic questions, acknowledge briefly and redirect to insurance
 - Do not re-trigger already-completed stages
-- For free-form insurance questions use action "none"`;
+- For free-form insurance questions use action "none"
+- If user says their employer provides insurance: acknowledge it as a valuable benefit; note it is group coverage tied to their employment — it ends when they change or lose their job, typically covers only 2-4× salary, and cannot be personalised; recommend a personal policy as a portable permanent foundation; action none`;
 }
 
 // ── API layer ──
@@ -367,21 +437,6 @@ async function callAPI(userMsg,imgData=null){
     S.conv.push({role:'assistant',content:text});
     return parseResp(text);
   }catch(e){S.conv.pop();return{message:"I'm having a little trouble right now — please try again in a moment",action:{type:'none'}};}
-  finally{showTyping(false);}
-}
-
-async function verifyPassport(userMsg,imgData){
-  S.conv.push({role:'user',content:userMsg});
-  showTyping(true);
-  try{
-    const body={messages:S.conv,systemPrompt:buildSysPrompt()+'\n\nIMPORTANT: A passport image has been uploaded. Extract the full name and compare with the application name. Respond in the standard JSON format',imageData:imgData};
-    const res=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    const data=await res.json();
-    if(!res.ok)throw new Error(data.error);
-    const text=data.content?.[0]?.text||'';
-    S.conv.push({role:'assistant',content:text});
-    return parseResp(text);
-  }catch(e){S.conv.pop();return{message:"There was an issue reading your document — please try again",action:{type:'none'}};}
   finally{showTyping(false);}
 }
 
@@ -447,7 +502,14 @@ async function executeAction(action){
     case 'show_signature':        renderSignature();break;
     case 'show_payment':          renderPayment();break;
     case 'show_confirmation':     renderConfirmation();break;
+    case 'show_nominee':          renderNominee();break;
     case 'select_plan':           handleSelectPlan(action.data);break;
+    case 'prefill_info':          handlePrefillInfo(action.data);break;
+    case 'prefill_quote':         handlePrefillQuote(action.data);break;
+    case 'prefill_medical':       handlePrefillMedical(action.data);break;
+    case 'confirm_active_card':   handleConfirmActiveCard();break;
+    case 'passport_verified':     await handlePassportVerified();break;
+    case 'reset_to_plan_selection': S.u.plan='';editCard('plan_card','start',true);break;
   }
 }
 
@@ -456,26 +518,85 @@ function handleSelectPlan(data){
   if(!['protection','savings','investment'].includes(plan))return;
   const hadDetails=!!(S.u.name&&S.u.dob&&S.u.income);
   S.u.plan=plan;
-  if(plan==='protection'){S.q.cover=S.u.income?Math.min(120*S.u.income,1000000):500000;S.q.term=20;}
+  if(plan==='protection'){
+  S.q.cover=S.u.income?Math.min(120*S.u.income,1000000):500000;
+  const age=S.u.dob?getAge(S.u.dob):35;
+  S.q.term=Math.max(10,Math.min(30,65-Math.round(age)));
+}
   else{S.q.premium=S.u.income?Math.max(100,Math.min(10000,Math.round(S.u.income*0.1))):500;S.q.term=10;S.q.fund='balanced';}
   const planCard=G('plan_card');
   if(planCard&&!planCard.classList.contains('done'))lockCard('plan_card');
   if(hadDetails){
-    const infoSentinel=msgs.querySelector('[data-sentinel="info_card"]');
-    if(infoSentinel){
-      const cl=parseInt(infoSentinel.dataset.convLen);
-      if(!isNaN(cl))S.conv=S.conv.slice(0,cl);
-      let node=infoSentinel.nextSibling;
-      while(node){const next=node.nextSibling;if(node.classList?.contains('comp'))node.remove();node=next;}
-    }
-    S.stage='info_collected';
-    if(plan==='protection')renderProtQuote();
-    else if(plan==='savings')renderSavQuote();
-    else renderInvQuote();
+    S.medVals={alc:'none',cc:'no',hosp:'no',medic:'no',fhist:'no',haz:'no'};
+    S.nominees=[];
+    editCard('info_card','plan_selected',true);
+    setTimeout(()=>prefillInfoCard(S.u),50);
   }else{
     S.stage='plan_selected';
     renderInfoForm();
   }
+}
+
+function handlePrefillInfo(data){
+  if(!G('info_card'))renderInfoForm();
+  prefillInfoCard(data);
+}
+
+function handlePrefillQuote(data){
+  const p=S.u.plan;
+  if(p==='protection'&&G('prot_card')){
+    G('prot_card').scrollIntoView({behavior:'smooth',block:'nearest'});
+    if(data.cover!==undefined)G('pc_csl').value=data.cover;
+    if(data.term!==undefined)G('pc_tsl').value=data.term;
+    upProtQ();
+  }else if(p==='savings'&&G('sav_card')){
+    G('sav_card').scrollIntoView({behavior:'smooth',block:'nearest'});
+    if(data.premium!==undefined)G('sv_psl').value=data.premium;
+    if(data.term!==undefined)G('sv_tsl').value=data.term;
+    upSavQ();
+  }else if(p==='investment'&&G('inv_card')){
+    G('inv_card').scrollIntoView({behavior:'smooth',block:'nearest'});
+    if(data.premium!==undefined)G('iv_psl').value=data.premium;
+    if(data.term!==undefined)G('iv_tsl').value=data.term;
+    if(data.fund){const el=document.querySelector(`#fund_opts .fnd[onclick*="${data.fund}"]`);if(el)pickFund(data.fund,el);}
+    upInvQ();
+  }
+}
+
+function handlePrefillMedical(data){
+  if(!G('med_card'))return;
+  G('med_card').scrollIntoView({behavior:'smooth',block:'nearest'});
+  if(data.height)G('m_h').value=data.height;
+  if(data.weight)G('m_w').value=data.weight;
+  if(data.height&&data.weight)calcBMI();
+  ['alc','cc','hosp','medic','fhist','haz'].forEach(f=>{
+    if(data[f]===undefined)return;
+    S.medVals[f]=data[f];
+    G('med_card').querySelectorAll(`[onclick*="'${f}'"]`).forEach(b=>{
+      b.classList.toggle('on',b.textContent.toLowerCase()===String(data[f]).toLowerCase());
+    });
+  });
+}
+
+let _silentConfirm=false;
+function handleConfirmActiveCard(){
+  const id=S.activeCard;if(!id)return;
+  if(id==='sig_card'){addBot("Please draw your signature on the canvas — I can't do that part for you");return;}
+  if(id==='pay_card'){addBot("Please fill in your card details to complete the payment — I can't do that part for you");return;}
+  if(id==='plan_card'){addBot("Please pick a plan from the options above");return;}
+  if(id==='nom_card'){addBot("Please fill in your nominee details above — I can't do that part for you");return;}
+  if(id==='ill_card'){const chk=G('ill_chk');if(chk){chk.checked=true;if(G('ill_btn'))G('ill_btn').disabled=false;}}
+  const fns={info_card:submitInfo,prot_card:acceptProtQ,sav_card:acceptSavQ,inv_card:acceptInvQ,ill_card:agreeIll,med_card:submitMed};
+  if(fns[id]){_silentConfirm=true;fns[id]();}
+}
+
+async function handlePassportVerified(){
+  S.nameMatched=true;
+  if(S.stage==='medical_done')S.stage='doc_uploaded';
+  await delay(400);
+  const resp=await callAPI('Passport has been verified — please continue the journey');
+  addBot(resp.message);
+  await executeAction(resp.action);
 }
 
 async function sendUserMsg(){
@@ -488,24 +609,6 @@ async function sendUserMsg(){
     :text;
   addUser(bubbleHtml);
   inp.value='';resizeInp();
-
-  // Passport verification — any file sent while waiting for passport
-  if(hasFile&&S.stage==='medical_done'){
-    const file=_attachFile;clearAttachment();
-    const checkMsg=`The user has shared their passport for identity verification — please extract the full name and check if it matches the application name "${S.u.name}" — state clearly whether they match`;
-    const resp=await verifyPassport(checkMsg,{base64:file.base64,mediaType:file.mediaType});
-    addBot(resp.message);
-    const isMatch=/match|correct|verified|same|confirm/i.test(resp.message)&&!/not match|mismatch|differ|incorrect/i.test(resp.message);
-    if(isMatch){
-      S.stage='doc_uploaded';S.nameMatched=true;
-      await delay(600);
-      const nextResp=await callAPI("My passport has been verified — please proceed to the digital signature");
-      addBot(nextResp.message);
-      await executeAction(nextResp.action);
-    }
-    S.busy=false;setActive(true);
-    return;
-  }
 
   // Document comparison or normal chat
   let resp;
@@ -528,6 +631,7 @@ function resizeInp(){inp.style.height='auto';inp.style.height=Math.min(inp.scrol
 // ── Plan selector ──
 function renderPlans(){
   if(G('plan_card'))return;
+  S.activeCard='plan_card';
   addComp(`<div class="card" id="plan_card">
     <div class="ctag">Your goal</div>
     <div class="plans">
@@ -540,6 +644,8 @@ function renderPlans(){
 
 async function pickPlan(plan){
   const card=G('plan_card');if(!card||card.classList.contains('done'))return;
+  card.querySelectorAll('.po').forEach(b=>b.classList.remove('sel'));
+  const sel=card.querySelector(`[onclick*="${plan}"]`);if(sel)sel.classList.add('sel');
   lockCard('plan_card');S.u.plan=plan;S.stage='plan_selected';
   const labels={protection:'Protect my family — pure life cover',investment:'Grow my wealth — investment with life cover',savings:'Save for a rainy day — guaranteed savings'};
   await sendAction(labels[plan],`I've selected the ${plan} plan — please proceed`);
@@ -548,6 +654,7 @@ async function pickPlan(plan){
 // ── Info form ──
 function renderInfoForm(){
   if(G('info_card'))return;
+  S.activeCard='info_card';
   addComp(`<div class="card" id="info_card">
     <div class="ctag">Your details <span class="ctag-note">· Honest answers ensure seamless claims</span></div>
     <div class="flds">
@@ -574,6 +681,27 @@ function checkInfo(){
 }
 function validDOB(val){if(val.length!==10)return false;const age=getAge(val);return age!==null&&age>=18&&age<=70;}
 
+function prefillInfoCard(u){
+  if(!G('f_name'))return;
+  if(u.name)G('f_name').value=u.name;
+  if(u.email)G('f_email').value=u.email;
+  if(u.dob)G('f_dob').value=u.dob;
+  if(u.income)G('f_inc').value=u.income;
+  if(u.gender){
+    S.u.gender=u.gender;
+    G('info_card').querySelectorAll('[onclick*="gender"]').forEach(b=>{
+      b.classList.toggle('on',b.textContent.toLowerCase()===u.gender);
+    });
+  }
+  if(u.smoker!==undefined){
+    S.u.smoker=!!u.smoker;
+    G('info_card').querySelectorAll('[onclick*="smoker"]').forEach(b=>{
+      b.classList.toggle('on',(b.textContent.toLowerCase()==='yes')===!!u.smoker);
+    });
+  }
+  checkInfo();
+}
+
 async function submitInfo(){
   const name=G('f_name').value.trim(),email=G('f_email').value.trim(),dob=G('f_dob').value.trim(),inc=Number(G('f_inc').value);
   let err=false;
@@ -583,17 +711,18 @@ async function submitInfo(){
   if(!inc){G('f_inc').classList.add('err');err=true;}else G('f_inc').classList.remove('err');
   if(err)return;
   S.u={...S.u,name,email,dob,income:inc};const age=getAge(dob);
-  if(S.u.plan==='protection'){S.q.cover=Math.min(120*inc,1000000);S.q.term=20;}
+  if(S.u.plan==='protection'){S.q.cover=Math.min(120*inc,1000000);S.q.term=Math.max(10,Math.min(30,65-Math.round(getAge(dob))));}
   else{S.q.premium=Math.max(100,Math.min(10000,Math.round(inc*0.1)));S.q.term=10;}
   lockCard('info_card');S.stage='info_collected';S.busy=true;setActive(false);
-  addUser('Details submitted');
-  const resp=await callAPI(`My details: Name="${name}", DOB=${dob} (age ${age}), Gender=${S.u.gender}, Income=$${inc}/mo, Smoker=${S.u.smoker?'yes':'no'} — Plan: ${S.u.plan} — please show me my ${S.u.plan} quote`);
+  if(!_silentConfirm)addUser('Details submitted'); _silentConfirm=false;
+  const resp=await callAPI(`Details submitted — Name="${name}", DOB=${dob} (age ${age}), Gender=${S.u.gender}, Income=$${inc}/mo, Smoker=${S.u.smoker?'yes':'no'}, Plan: ${S.u.plan}`);
   addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
 }
 
 // ── Protection quote ──
 function renderProtQuote(){
   if(G('prot_card'))return;
+  S.activeCard='prot_card';
   const {cover,term}=S.q,age=getAge(S.u.dob),mp=calcProtPremium(cover,age,term,S.u.smoker,S.u.gender);
   addComp(`<div class="card" id="prot_card">
     <div class="ctag">${ic.shield} Protection plan</div>
@@ -604,6 +733,8 @@ function renderProtQuote(){
     <div class="qrow"><div><div class="ql">Maturity amount</div><div class="qv">—</div><div class="qs">This plan has no maturity payout</div></div></div>
     <div class="qdiv"></div>
     <div class="feat">${ic.check} We continue paying your premiums for the entirety of the policy term in case you are diagnosed with a terminal illness, become disabled, or in the event of your death (we didn't want to mention this, but such is the nature of this conversation)</div>
+    <div class="feat" style="margin-top:8px">${ic.check} 15-day free look — not happy after purchase? Cancel within 15 days for a full refund, no questions asked</div>
+    <div class="feat" style="margin-top:8px">${ic.check} Hassle-free claims — your nominee simply emails <strong>help@life-guard.com</strong> with required documents; all claims settled within 24 working hours of receipt</div>
     <button class="btn" onclick="acceptProtQ()">This looks good, proceed ${ic.arrow}</button>
   </div>`);
 }
@@ -615,7 +746,7 @@ function upProtQ(){
 async function acceptProtQ(){
   const {cover,term}=S.q,mp=calcProtPremium(cover,getAge(S.u.dob),term,S.u.smoker,S.u.gender);
   S.q.premium=mp;lockCard('prot_card');S.stage='quote_accepted';S.busy=true;setActive(false);
-  addUser(`Protection plan confirmed — ${fmt(cover)} cover, ${term}-year term, ${fmt(mp)}/month`);
+  if(!_silentConfirm)addUser(`Protection plan confirmed — ${fmt(cover)} cover, ${term}-year term, ${fmt(mp)}/month`); _silentConfirm=false;
   const resp=await callAPI(`I've accepted the Protection Plan — cover: ${fmt(cover)}, term: ${term} years, premium: ${fmt(mp)}/month — please show me the policy illustration`);
   addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
 }
@@ -623,6 +754,7 @@ async function acceptProtQ(){
 // ── Savings quote ──
 function renderSavQuote(){
   if(G('sav_card'))return;
+  S.activeCard='sav_card';
   const prem=S.q.premium,term=S.q.term,cover=Math.min(120*prem,1e6),mat=calcSavMaturity(prem,term);
   addComp(`<div class="card" id="sav_card">
     <div class="ctag">${ic.savings} Savings plan</div>
@@ -633,6 +765,8 @@ function renderSavQuote(){
     <div class="qrow"><div><div class="ql">Guaranteed maturity</div><div class="qv" id="sv_mv">${fmt(mat)}</div><div class="qs">at end of term</div></div><div style="text-align:right"><div class="ql">Total paid</div><div class="qv" id="sv_tp">${fmt(prem*term*12)}</div><div class="qs" id="sv_ts">over ${term} years</div></div></div>
     <div class="qdiv"></div>
     <div class="feat">${ic.check} We continue paying your premiums for the entirety of the policy term in case you are diagnosed with a terminal illness, become disabled, or in the event of your death (we didn't want to mention this, but such is the nature of this conversation)</div>
+    <div class="feat" style="margin-top:8px">${ic.check} 15-day free look — not happy after purchase? Cancel within 15 days for a full refund, no questions asked</div>
+    <div class="feat" style="margin-top:8px">${ic.check} Hassle-free claims — your nominee simply emails <strong>help@life-guard.com</strong> with required documents; all claims settled within 24 working hours of receipt</div>
     <button class="btn" onclick="acceptSavQ()">This looks good, proceed ${ic.arrow}</button>
   </div>`);
 }
@@ -642,7 +776,7 @@ function upSavQ(){
 }
 async function acceptSavQ(){
   const {premium,term}=S.q;lockCard('sav_card');S.stage='quote_accepted';S.busy=true;setActive(false);
-  addUser(`Savings plan confirmed — ${fmt(premium)}/month, ${term}-year term`);
+  if(!_silentConfirm)addUser(`Savings plan confirmed — ${fmt(premium)}/month, ${term}-year term`); _silentConfirm=false;
   const resp=await callAPI(`I've accepted the savings plan — premium: ${fmt(premium)}/month, term: ${term} years — please show me the illustration`);
   addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
 }
@@ -650,6 +784,7 @@ async function acceptSavQ(){
 // ── Investment quote ──
 function renderInvQuote(){
   if(G('inv_card'))return;
+  S.activeCard='inv_card';
   const prem=S.q.premium,term=S.q.term,fund=S.q.fund,cover=Math.min(120*prem,1e6),mat=calcInvMaturity(prem,term,fund);
   addComp(`<div class="card" id="inv_card">
     <div class="ctag">${ic.trending} Investment plan</div>
@@ -668,6 +803,8 @@ function renderInvQuote(){
     <div class="qdiv"></div>
     <div class="feat" style="margin-bottom:10px">${ic.check} We continue paying your premiums for the entirety of the policy term in case you are diagnosed with a terminal illness, become disabled, or in the event of your death (we didn't want to mention this, but such is the nature of this conversation)</div>
     <div class="warn">${ic.warn} Past returns are not indicative of future gains — please invest as per your risk appetite</div>
+    <div class="feat" style="margin-top:8px">${ic.check} 15-day free look — not happy after purchase? Cancel within 15 days for a full refund, no questions asked</div>
+    <div class="feat" style="margin-top:8px">${ic.check} Hassle-free claims — your nominee simply emails <strong>help@life-guard.com</strong> with required documents; all claims settled within 24 working hours of receipt</div>
     <button class="btn" onclick="acceptInvQ()">This looks good, proceed ${ic.arrow}</button>
   </div>`);
 }
@@ -680,7 +817,7 @@ function upInvQ(){
 async function acceptInvQ(){
   const {premium,term,fund}=S.q,mat=calcInvMaturity(premium,term,fund);
   lockCard('inv_card');S.stage='quote_accepted';S.busy=true;setActive(false);
-  addUser(`Investment plan confirmed — ${fmt(premium)}/month, ${term} yrs, ${FUNDS[fund].label} Fund`);
+  if(!_silentConfirm)addUser(`Investment plan confirmed — ${fmt(premium)}/month, ${term} yrs, ${FUNDS[fund].label} Fund`); _silentConfirm=false;
   const resp=await callAPI(`I've accepted the investment plan — premium: ${fmt(premium)}/month, term: ${term} years, fund: ${FUNDS[fund].label} (${FUNDS[fund].rate}%), projected maturity: ${fmt(mat)} — please show the illustration`);
   addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
 }
@@ -688,11 +825,12 @@ async function acceptInvQ(){
 // ── Illustration ──
 function renderIllustration(){
   if(G('ill_card'))return;
-  const rows=buildIllustration(),isP=S.u.plan==='protection';
-  const hdr=isP?'<th>Yr</th><th>Age</th><th>Premiums paid</th><th>Life cover</th>':'<th>Yr</th><th>Age</th><th>Premiums paid</th><th>Life cover</th><th>Maturity value</th>';
-  const tBody=rows.map(r=>`<tr><td>${r.y}</td><td>${r.age}</td><td>${fmt(r.paid)}</td><td>${fmt(r.cover)}</td>${isP?'':`<td>${fmt(r.mat)}</td>`}</tr>`).join('');
+  S.activeCard='ill_card';
+  const rows=buildIllustration();
+  const hdr='<th>Yr</th><th>Age</th><th>Premiums paid</th><th>Life cover</th><th>Maturity value</th><th>Surrender value</th>';
+  const tBody=rows.map(r=>`<tr><td>${r.y}</td><td>${r.age}</td><td>${fmt(r.paid)}</td><td>${fmt(r.cover)}</td><td>${r.mat!=null?fmt(r.mat):'—'}</td><td>${r.sv!=null?fmt(r.sv):'—'}</td></tr>`).join('');
   const last=rows[rows.length-1];
-  const totRow=`<tr class="tot"><td>Total</td><td>—</td><td>${fmt(last.paid)}</td><td>${fmt(last.cover)}</td>${isP?'':`<td>${fmt(last.mat)}</td>`}</tr>`;
+  const totRow=`<tr class="tot"><td>Total</td><td>—</td><td>${fmt(last.paid)}</td><td>${fmt(last.cover)}</td><td>${last.mat!=null?fmt(last.mat):'—'}</td><td>${last.sv!=null?fmt(last.sv):'—'}</td></tr>`;
   addComp(`<div class="card" id="ill_card">
     <div class="ctag">Policy illustration</div>
     <div class="ilw"><table class="ilt"><thead><tr>${hdr}</tr></thead><tbody>${tBody}</tbody><tfoot>${totRow}</tfoot></table></div>
@@ -701,13 +839,16 @@ function renderIllustration(){
   </div>`);
 }
 async function agreeIll(){
-  lockCard('ill_card');S.stage='illustration_agreed';
-  await sendAction('Policy illustration agreed',"I've reviewed and agreed to the policy illustration — please proceed to the medical questionnaire");
+  lockCard('ill_card');S.stage='illustration_agreed';S.busy=true;setActive(false);
+  if(!_silentConfirm)addUser('Policy illustration agreed'); _silentConfirm=false;
+  const resp=await callAPI("I've reviewed and agreed to the policy illustration — please proceed to the medical questionnaire");
+  addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
 }
 
 // ── Medical ──
 function renderMedical(){
   if(G('med_card'))return;
+  S.activeCard='med_card';
   addComp(`<div class="card" id="med_card">
     <div class="ctag">Medical questionnaire <span class="ctag-note">· Honest answers ensure seamless claims</span></div>
     <div class="mq"><div class="bmir"><input class="fi" id="m_h" type="number" placeholder="Height (cm)" min="100" max="250" oninput="calcBMI()"><input class="fi" id="m_w" type="number" placeholder="Weight (kg)" min="20" max="300" oninput="calcBMI()"><div class="bmib" id="bmi_box">BMI</div></div></div>
@@ -717,15 +858,19 @@ function renderMedical(){
     <div class="mq"><span class="ml">Taking any regular medication?</span><div class="rg"><button class="rb on" onclick="setRb('medic','no',this)">No</button><button class="rb" onclick="setRb('medic','yes',this)">Yes</button></div></div>
     <div class="mq"><span class="ml">Family history of cancer, heart disease, or stroke?</span><div class="rg"><button class="rb on" onclick="setRb('fhist','no',this)">No</button><button class="rb" onclick="setRb('fhist','yes',this)">Yes</button></div></div>
     <div class="mq"><span class="ml">Hazardous activities — diving, motorsport, or similar?</span><div class="rg"><button class="rb on" onclick="setRb('haz','no',this)">No</button><button class="rb" onclick="setRb('haz','yes',this)">Yes</button></div></div>
-    <button class="btn" onclick="submitMed()">Submit medical information ${ic.arrow}</button>
+    <button class="btn" id="med_btn" disabled onclick="submitMed()">Submit medical information ${ic.arrow}</button>
   </div>`);
 }
-function calcBMI(){const h=Number(G('m_h').value),w=Number(G('m_w').value);if(h>0&&w>0){const bmi=(w/Math.pow(h/100,2)).toFixed(1);const box=G('bmi_box');box.textContent='BMI '+bmi;box.style.color=(bmi<18.5||bmi>30)?'var(--gold)':'var(--a)';}}
+function calcBMI(){
+  const h=Number(G('m_h').value),w=Number(G('m_w').value);
+  const btn=G('med_btn');if(btn)btn.disabled=!(h>0&&w>0);
+  if(h>0&&w>0){const bmi=(w/Math.pow(h/100,2)).toFixed(1);const box=G('bmi_box');box.textContent='BMI '+bmi;box.style.color=(bmi<18.5||bmi>30)?'var(--gold)':'var(--a)';}
+}
 function setRb(key,val,btn){btn.parentElement.querySelectorAll('.rb').forEach(b=>b.classList.remove('on'));btn.classList.add('on');S.medVals[key]=val;}
 async function submitMed(){
   const h=G('m_h').value||'—',w=G('m_w').value||'—',mv=S.medVals;
   lockCard('med_card');S.stage='medical_done';S.busy=true;setActive(false);
-  addUser('Medical information submitted');
+  if(!_silentConfirm)addUser('Medical information submitted'); _silentConfirm=false;
   const summary=`Height:${h}cm, Weight:${w}kg, Alcohol:${mv.alc}, Chronic conditions:${mv.cc}, Hospitalised:${mv.hosp}, Medication:${mv.medic}, Family history:${mv.fhist}, Hazardous activities:${mv.haz}`;
   const resp=await callAPI(`Medical questionnaire complete — ${summary} — please ask the user to share their passport in the chat for identity verification`);
   addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
@@ -734,6 +879,7 @@ async function submitMed(){
 // ── Signature ──
 function renderSignature(){
   if(G('sig_card'))return;
+  S.activeCard='sig_card';
   addComp(`<div class="card" id="sig_card">
     <div class="ctag">Digital signature</div>
     <p style="font-size:12px;color:var(--t2);margin-bottom:12px;line-height:1.6">By signing below, you confirm that all information provided in this application is accurate and complete to the best of your knowledge</p>
@@ -767,6 +913,7 @@ async function submitSig(){
 // ── Payment ──
 function renderPayment(){
   if(G('pay_card'))return;
+  S.activeCard='pay_card';
   let amount=S.q.premium;
   if(S.u.plan==='protection')amount=calcProtPremium(S.q.cover,getAge(S.u.dob),S.q.term,S.u.smoker,S.u.gender);
   addComp(`<div class="card" id="pay_card">
@@ -796,7 +943,95 @@ async function submitPay(fmtAmt){
   await delay(1800);
   G('pay_card').classList.add('done');S.stage='paid';S.busy=true;setActive(false);
   addUser(`Payment of ${fmtAmt} processed`);
-  const resp=await callAPI(`Payment was successful — please show the confirmation screen now`);
+  const resp=await callAPI(`Payment was successful — please show the nominee collection screen now`);
+  addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
+}
+
+// ── Nominees ──
+let _nomIdx=0;
+function renderNominee(){
+  if(G('nom_card'))return;
+  S.activeCard='nom_card'; _nomIdx=0;
+  addComp(`<div class="card" id="nom_card">
+    <div class="ctag">Your beneficiaries</div>
+    <p style="font-size:12px;color:var(--t2);margin-bottom:13px;line-height:1.6">Tell us who should receive the policy benefit — you can name up to 3 nominees</p>
+    <div id="nom_rows"></div>
+    <button class="gbtn" id="nom_add" onclick="addNomRow()">+ Add another nominee</button>
+    <div class="nom-bar"><div class="nom-bar-fill" id="nom_fill" style="width:0%"></div></div>
+    <div class="nom-stats">
+      <div><div class="nom-stat-l">Allocated</div><div class="nom-stat-v" id="nom_alloc" style="color:var(--red)">0%</div></div>
+      <div style="text-align:right"><div class="nom-stat-l">Remaining</div><div class="nom-stat-v" id="nom_rem" style="color:var(--t2)">100%</div></div>
+    </div>
+    <button class="btn" id="nom_btn" disabled onclick="submitNominee()">Confirm nominees ${ic.arrow}</button>
+  </div>`);
+  addNomRow(100);
+}
+
+function addNomRow(initPct){
+  const i=_nomIdx++;
+  if(initPct===undefined){
+    const existing=[...G('nom_rows').querySelectorAll('.nom-row')];
+    const n=existing.length+1,even=Math.floor(100/n),rem=100-(even*n);
+    existing.forEach((r,ri)=>{const pi=r.dataset.idx;const el=G(`nom_p_${pi}`);if(el)el.value=even+(ri===0?rem:0);});
+    initPct=even;
+  }
+  const row=document.createElement('div');
+  row.className='nom-row';row.dataset.idx=i;
+  row.innerHTML=`
+    <input class="fi" id="nom_n_${i}" type="text" placeholder="Nominee full name" oninput="checkNoms()">
+    <div class="nom-spl">
+      <div style="flex:1"><select class="fi" id="nom_r_${i}" onchange="checkNoms()">
+        <option value="">Relationship</option>
+        <option>Spouse</option><option>Child</option><option>Parent</option><option>Sibling</option><option>Other</option>
+      </select></div>
+      <div class="nom-pct">
+        <input class="fi" id="nom_p_${i}" type="number" min="1" max="100" value="${initPct}" oninput="checkNoms()">
+        <span class="nom-pct-sym">%</span>
+      </div>
+      ${i>0?`<button class="nom-del" onclick="removeNomRow(${i})" type="button">×</button>`:''}
+    </div>`;
+  G('nom_rows').appendChild(row);
+  if(_nomIdx>=3)G('nom_add').style.display='none';
+  checkNoms();
+}
+
+function removeNomRow(i){
+  const row=G('nom_rows').querySelector(`[data-idx="${i}"]`);
+  if(row)row.remove();
+  G('nom_add').style.display='';
+  checkNoms();
+}
+
+function checkNoms(){
+  let total=0,allValid=true;
+  G('nom_rows').querySelectorAll('.nom-row').forEach(row=>{
+    const i=row.dataset.idx;
+    const name=G(`nom_n_${i}`)?.value.trim();
+    const rel=G(`nom_r_${i}`)?.value;
+    const pct=Number(G(`nom_p_${i}`)?.value);
+    if(!name||name.length<2||!rel||!pct||pct<1)allValid=false;
+    total+=pct||0;
+  });
+  const rem=100-total,ok=total===100&&allValid;
+  G('nom_fill').style.width=Math.min(total,100)+'%';
+  G('nom_fill').style.background=total>100?'var(--red)':'var(--a)';
+  G('nom_alloc').textContent=total+'%';
+  G('nom_alloc').style.color=total===100?'var(--a)':total>100?'var(--red)':'var(--tx)';
+  G('nom_rem').textContent=rem+'%';
+  G('nom_rem').style.color=rem===0?'var(--t3)':'var(--t2)';
+  G('nom_btn').disabled=!ok;
+}
+
+async function submitNominee(){
+  const nominees=[];
+  G('nom_rows').querySelectorAll('.nom-row').forEach(row=>{
+    const i=row.dataset.idx;
+    nominees.push({name:G(`nom_n_${i}`).value.trim(),relationship:G(`nom_r_${i}`).value,share:Number(G(`nom_p_${i}`).value)});
+  });
+  S.nominees=nominees;
+  lockCard('nom_card');S.stage='nominee_done';S.busy=true;setActive(false);
+  addUser('Nominees confirmed — '+nominees.map(n=>`${n.name} (${n.relationship}) ${n.share}%`).join(' · '));
+  const resp=await callAPI('Nominees confirmed — please show the final confirmation screen');
   addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
 }
 
@@ -804,12 +1039,15 @@ async function submitPay(fmtAmt){
 function renderConfirmation(){
   if(G('conf_card'))return;
   const first=S.u.name.split(' ')[0];
+  const nomList=S.nominees?.length
+    ?`<br><br>Your ${S.nominees.length===1?'beneficiary':'beneficiaries'}: ${S.nominees.map(n=>`<strong style="color:var(--tx)">${n.name}</strong> (${n.relationship}) — ${n.share}%`).join('&nbsp; · &nbsp;')}`
+    :'';
   addComp(`<div class="card" id="conf_card">
     <div class="conf">
       <div class="cico">${ic.checkLg}</div>
       <div class="ch">You're all set, ${first}!</div>
       <div class="cp">
-        You've done the second most important thing by purchasing a life insurance policy — what comes first is staying healthy so your family and loved ones never have to use it<br><br>
+        You've done the second most important thing by purchasing a life insurance policy — what comes first is staying healthy so your family and loved ones never have to use it${nomList}<br><br>
         You will receive your policy copy, or hear from us if any additional information is needed, within the next <strong style="color:var(--tx)">24 hours</strong> — the team will reach out to you at <span class="ce">${S.u.email}</span><br><br>
         You can also reach us at <span class="ce">help@life-guard.com</span> — please use the same email address as on your application so we can identify you faster
       </div>
@@ -824,10 +1062,10 @@ inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDef
 snd.addEventListener('click',sendUserMsg);
 
 // ── Init ──
-setTimeout(()=>{typing.style.display='flex';scroll();},500);
-setTimeout(()=>{typing.style.display='none';addBot("Welcome to Life Guard — let's start your life insurance journey with a few simple questions");},1800);
-setTimeout(()=>{typing.style.display='flex';scroll();},2200);
-setTimeout(()=>{typing.style.display='none';addBot("What are you seeking from your life insurance policy?");renderPlans();setActive(true);},3600);
+setTimeout(()=>{typing.style.display='flex';scroll();},300);
+setTimeout(()=>{typing.style.display='none';addBot("Welcome to Life Guard — let's start your life insurance journey with a few simple questions");},900);
+setTimeout(()=>{typing.style.display='flex';scroll();},1200);
+setTimeout(()=>{typing.style.display='none';addBot("What are you seeking from your life insurance policy?");renderPlans();setActive(true);},2000);
 </script>
 </body>
 </html>
