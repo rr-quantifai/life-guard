@@ -365,10 +365,24 @@ If the user expresses a clear plan preference in natural language at any stage:
 - If the user declines, acknowledge and continue the current journey normally
 - When you have just warned the user that switching plans will clear progress and asked if they want to proceed: on the very next user turn the ONLY valid actions are select_plan, reset_to_plan_selection, or none — do NOT emit confirm_active_card regardless of what the user says, since their reply is answering your plan-change question
 
-DOCUMENT HANDLING — for any document shared at any stage:
-- Passport or government-issued photo ID (driving licence, national ID, residence permit) + passportVerified false + info card not yet filled: ask "Should I use this to fill in your details?" — on yes, emit prefill_info with extracted name, dob, gender
-- Passport or government-issued photo ID + passportVerified false + info card already filled: verify name matches "${u.name}" — if match emit passport_verified; if mismatch tell the user clearly
-- Passport or government-issued photo ID + passportVerified already true: acknowledge and continue
+DOCUMENT HANDLING — behaviour varies by stage:
+
+At info card stage (stage="plan_selected" or info card active and not yet submitted):
+- Government-issued photo ID (passport, driving licence, national ID, residence permit) + passportVerified false:
+  State exactly which fields you extracted and which are still missing ("Found your name [X], date of birth [Y], and gender [Z] — filling those in now; you'll still need to add email and income"); emit prefill_info with all extractable fields; one message only
+- Government-issued photo ID + passportVerified already true: acknowledge briefly; action none
+- Insurance document / quotation:
+  Identify the insurer and map the plan type to Life Guard equivalent (term/pure protection → protection; endowment/money-back → savings; ULIP/unit-linked → investment)
+  If plan type differs from S.u.plan: note what the document is and the mismatch; offer two explicit options — (a) compare the two plan types, (b) switch selection to the matching Life Guard plan; action none — await choice
+  If plan type matches S.u.plan: acknowledge, offer to compare against Life Guard once details are filled; action none
+- Any other document (CV, resume, bank statement, etc.): state what the document is; emit prefill_info if any personal fields (name, email, DOB) are visible and state exactly what you extracted; do NOT mention policy comparison; action none if nothing extractable
+
+At medical_done stage (passportVerified false):
+- Government-issued photo ID: verify extracted name matches "${u.name}" — if match emit passport_verified; if mismatch tell the user clearly
+
+At all other stages:
+- Government-issued photo ID + passportVerified false: verify name matches "${u.name}" — if match emit passport_verified; if mismatch tell the user clearly
+- Government-issued photo ID + passportVerified already true: acknowledge and continue
 - Insurance document: run a structured comparison:
   1. Extract: insurer, plan type, sum assured, monthly premium, policy term remaining, key features, visible exclusions
   2. Compare against Life Guard best-fit plan or active journey plan:
@@ -380,9 +394,7 @@ DOCUMENT HANDLING — for any document shared at any stage:
   3. Give an honest verdict — if the existing policy is genuinely better value, say so clearly; do not oversell Life Guard
   4. If plan type differs and user wants a proper comparison: emit select_plan with the detected type
   5. If user decides to proceed with Life Guard: continue the journey normally
-- Any other document type (CV, resume, bank statement, utility bill, etc.):
-  If info card is active or not yet submitted: acknowledge what the document is; offer to extract any visible personal details (name, email, DOB) to pre-fill the application form; do NOT mention policy comparison
-  Otherwise: acknowledge the document type, note it cannot be used in this context, redirect to the current journey step; action none
+- Any other document type: acknowledge, note it cannot be used in this context, redirect to current journey step; action none
 
 JOURNEY LOGIC — cards are the confirmation gates; guide the user to each one through conversation:
 - Stage "plan_selected": if user details are unknown emit show_info_form; if details are already known from conversation emit prefill_info directly — it renders the form automatically
@@ -421,6 +433,7 @@ SENSITIVE SCENARIOS:
 - User mentions they cannot afford much: help them find the minimum viable coverage rather than defaulting to 120× income
 
 RULES:
+- Set "message" to "" when the user's input is an unambiguous field value (a name, email, date, number, yes/no, or a clear directive matching an option you offered) — execute the action silently; the card updating is the feedback. Only respond with a message when: the card just became fully filled, there is genuine ambiguity, the user asked a question, a problem needs flagging, or your response is itself the deliverable (a comparison, an explanation)
 - Keep responses warm and concise (2–3 sentences); never end a sentence or message with a period — drop all terminal punctuation for a casual, conversational feel
 - Never invent premium or maturity numbers — the UI calculates these
 - When pre-filling a card, narrate exactly what you've filled in and ask the user to review before confirming
@@ -551,32 +564,33 @@ function handleSelectPlan(data){
 function handlePrefillInfo(data){
   if(!G('info_card'))renderInfoForm();
   prefillInfoCard(data);
+  const comp=G('info_card')?.closest('.comp');
+  if(comp){msgs.appendChild(comp);scroll();}
 }
 
 function handlePrefillQuote(data){
   const p=S.u.plan;
   if(p==='protection'&&G('prot_card')){
-    G('prot_card').scrollIntoView({behavior:'smooth',block:'nearest'});
     if(data.cover!==undefined)G('pc_csl').value=data.cover;
     if(data.term!==undefined)G('pc_tsl').value=data.term;
     upProtQ();
+    const comp=G('prot_card').closest('.comp');if(comp){msgs.appendChild(comp);scroll();}
   }else if(p==='savings'&&G('sav_card')){
-    G('sav_card').scrollIntoView({behavior:'smooth',block:'nearest'});
     if(data.premium!==undefined)G('sv_psl').value=data.premium;
     if(data.term!==undefined)G('sv_tsl').value=data.term;
     upSavQ();
+    const comp=G('sav_card').closest('.comp');if(comp){msgs.appendChild(comp);scroll();}
   }else if(p==='investment'&&G('inv_card')){
-    G('inv_card').scrollIntoView({behavior:'smooth',block:'nearest'});
     if(data.premium!==undefined)G('iv_psl').value=data.premium;
     if(data.term!==undefined)G('iv_tsl').value=data.term;
     if(data.fund){const el=document.querySelector(`#fund_opts .fnd[onclick*="${data.fund}"]`);if(el)pickFund(data.fund,el);}
     upInvQ();
+    const comp=G('inv_card').closest('.comp');if(comp){msgs.appendChild(comp);scroll();}
   }
 }
 
 function handlePrefillMedical(data){
   if(!G('med_card'))return;
-  G('med_card').scrollIntoView({behavior:'smooth',block:'nearest'});
   if(data.height)G('m_h').value=data.height;
   if(data.weight)G('m_w').value=data.weight;
   if(data.height&&data.weight)calcBMI();
@@ -587,6 +601,7 @@ function handlePrefillMedical(data){
       b.classList.toggle('on',b.textContent.toLowerCase()===String(data[f]).toLowerCase());
     });
   });
+  const comp=G('med_card').closest('.comp');if(comp){msgs.appendChild(comp);scroll();}
 }
 
 let _silentConfirm=false;
@@ -606,7 +621,7 @@ async function handlePassportVerified(){
   if(S.stage==='medical_done')S.stage='doc_uploaded';
   await delay(400);
   const resp=await callAPI('Passport has been verified — please continue the journey');
-  if(resp.message&&resp.message.trim())if(resp.message&&resp.message.trim())addBot(resp.message);
+  if(resp.message&&resp.message.trim())addBot(resp.message);
   await executeAction(resp.action);
 }
 
@@ -625,14 +640,14 @@ async function sendUserMsg(){
   let resp;
   if(hasFile){const file=_attachFile;clearAttachment();resp=await callAPI(text||"I've shared a document — please analyse it",{base64:file.base64,mediaType:file.mediaType});}
   else{resp=await callAPI(text);}
-  if(resp.message&&resp.message.trim())if(resp.message&&resp.message.trim())addBot(resp.message);
+  if(resp.message&&resp.message.trim())addBot(resp.message);
   await executeAction(resp.action);
   S.busy=false;setActive(true);
 }
 
 async function sendAction(displayMsg,apiMsg){
   if(S.busy)return;S.busy=true;setActive(false);addUser(displayMsg);
-  const resp=await callAPI(apiMsg||displayMsg);if(resp.message&&resp.message.trim())if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);
+  const resp=await callAPI(apiMsg||displayMsg);if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);
   S.busy=false;setActive(true);
 }
 
@@ -731,7 +746,7 @@ async function submitInfo(){
   lockCard('info_card');S.stage='info_collected';S.busy=true;setActive(false);
   if(!wasSilent)addUser('Details submitted');
   const resp=await callAPI(`Details submitted — Name="${name}", DOB=${dob} (age ${age}), Gender=${S.u.gender}, Income=$${inc}/mo, Smoker=${S.u.smoker?'yes':'no'}, Plan: ${S.u.plan}`);
-  if(resp.message&&resp.message.trim())if(resp.message&&resp.message.trim())if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
+  if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
 }
 
 // ── Protection quote ──
@@ -764,7 +779,7 @@ async function acceptProtQ(){
   S.q.premium=mp;lockCard('prot_card');S.stage='quote_accepted';S.busy=true;setActive(false);
   if(!wasSilent)addUser(`Protection plan confirmed — ${fmt(cover)} cover, ${term}-year term, ${fmt(mp)}/month`);
   const resp=await callAPI(`I've accepted the Protection Plan — cover: ${fmt(cover)}, term: ${term} years, premium: ${fmt(mp)}/month — please show me the policy illustration`);
-  if(resp.message&&resp.message.trim())if(resp.message&&resp.message.trim())if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
+  if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
 }
 
 // ── Savings quote ──
@@ -795,7 +810,7 @@ async function acceptSavQ(){
   lockCard('sav_card');S.stage='quote_accepted';S.busy=true;setActive(false);
   if(!wasSilent)addUser(`Savings plan confirmed — ${fmt(premium)}/month, ${term}-year term`);
   const resp=await callAPI(`I've accepted the savings plan — premium: ${fmt(premium)}/month, term: ${term} years — please show me the illustration`);
-  if(resp.message&&resp.message.trim())if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
+  if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
 }
 
 // ── Investment quote ──
@@ -837,7 +852,7 @@ async function acceptInvQ(){
   lockCard('inv_card');S.stage='quote_accepted';S.busy=true;setActive(false);
   if(!wasSilent)addUser(`Investment plan confirmed — ${fmt(premium)}/month, ${term} yrs, ${FUNDS[fund].label} Fund`);
   const resp=await callAPI(`I've accepted the investment plan — premium: ${fmt(premium)}/month, term: ${term} years, fund: ${FUNDS[fund].label} (${FUNDS[fund].rate}%), projected maturity: ${fmt(mat)} — please show the illustration`);
-  if(resp.message&&resp.message.trim())if(resp.message&&resp.message.trim())if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
+  if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
 }
 
 // ── Illustration ──
@@ -861,7 +876,7 @@ async function agreeIll(){
   lockCard('ill_card');S.stage='illustration_agreed';S.busy=true;setActive(false);
   if(!wasSilent)addUser('Policy illustration agreed');
   const resp=await callAPI("I've reviewed and agreed to the policy illustration — please proceed to the medical questionnaire");
-  if(resp.message&&resp.message.trim())if(resp.message&&resp.message.trim())if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
+  if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
 }
 
 // ── Medical ──
@@ -895,7 +910,7 @@ async function submitMed(){
   if(!wasSilent)addUser('Medical information submitted');
   const summary=`Height:${h}cm, Weight:${w}kg, Alcohol:${mv.alc}, Chronic conditions:${mv.cc}, Hospitalised:${mv.hosp}, Medication:${mv.medic}, Family history:${mv.fhist}, Hazardous activities:${mv.haz}`;
   const resp=await callAPI(`Medical questionnaire complete — ${summary} — please ask the user to share their passport in the chat for identity verification`);
-  if(resp.message&&resp.message.trim())if(resp.message&&resp.message.trim())if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
+  if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
 }
 
 // ── Signature ──
@@ -966,7 +981,7 @@ async function submitPay(fmtAmt){
   G('pay_card').classList.add('done');S.stage='paid';S.busy=true;setActive(false);
   addUser(`Payment of ${fmtAmt} processed`);
   const resp=await callAPI(`Payment was successful — please show the nominee collection screen now`);
-  if(resp.message&&resp.message.trim())if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
+  if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
 }
 
 // ── Nominees ──
@@ -1054,7 +1069,7 @@ function handlePrefillNominee(nominees){
     const sel=G(`nom_r_${idx}`);
     if(sel&&n.relationship)[...sel.options].forEach(o=>{if(o.value.toLowerCase()===n.relationship.toLowerCase())sel.value=o.value;});
   });
-  checkNoms();G('nom_card').scrollIntoView({behavior:'smooth',block:'nearest'});
+  checkNoms();const comp=G('nom_card').closest('.comp');if(comp){msgs.appendChild(comp);scroll();}
 }
 async function submitNominee(){
   const nominees=[];
@@ -1066,7 +1081,7 @@ async function submitNominee(){
   lockCard('nom_card');S.stage='nominee_done';S.busy=true;setActive(false);
   addUser('Nominees confirmed — '+nominees.map(n=>`${n.name} (${n.relationship}) ${n.share}%`).join(' · '));
   const resp=await callAPI('Nominees confirmed — please show the final confirmation screen');
-  if(resp.message&&resp.message.trim())if(resp.message&&resp.message.trim())if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
+  if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
 }
 
 // ── Confirmation ──
