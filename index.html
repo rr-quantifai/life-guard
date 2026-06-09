@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#F5F7FB;--s1:#FFFFFF;--s2:#EDF0F8;--s3:#E2E6F2;--s4:#CDD3E8;
+  --bg:#F5F7FB;--s1:#FFFFFF;--s2:#EDF0F8;--s4:#CDD3E8;
   --a:#0BAF88;--ad:#089070;--aa:rgba(11,175,136,.10);
   --tx:#1C2237;--t2:#4A5272;--t3:#98A3C0;
   --red:#DC3545;--gold:#9A6400;
@@ -27,7 +27,7 @@ body{height:100%;background:var(--bg);color:var(--tx);font-family:'Inter',ui-san
 .bbl{max-width:80%;padding:12px;border-radius:14px;font-size:14px;line-height:1.6}
 .row:not(.u) .bbl{background:var(--bb);border:1px solid var(--bd);border-bottom-left-radius:3px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
 .row.u .bbl{background:var(--a);color:#fff;font-weight:500;border-bottom-right-radius:3px}
-.comp{margin-left:36px;margin-bottom:4px;animation:pop .22s ease}
+.comp{margin-left:36px;margin-bottom:4px;animation:pop .22s ease;position:relative}
 #typing{display:none;align-items:flex-end;gap:8px;padding:0 14px 6px}
 .tdots{background:var(--bb);border:1px solid var(--bd);border-radius:14px;border-bottom-left-radius:3px;padding:10px;display:flex;gap:5px;align-items:center;box-shadow:0 1px 3px rgba(0,0,0,.05)}
 .tdot{width:6px;height:6px;background:var(--s4);border-radius:50%;animation:bnc 1.2s infinite}
@@ -51,6 +51,9 @@ body{height:100%;background:var(--bg);color:var(--tx);font-family:'Inter',ui-san
 .card{background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:17px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
 .card.done{opacity:.35;cursor:pointer;user-select:none;touch-action:manipulation}
 .card.done *{pointer-events:none}
+.card-overlay{position:absolute;inset:0;border-radius:14px;display:flex;align-items:center;justify-content:center;background:rgba(245,247,251,.88);pointer-events:none}
+.card-overlay-pill{display:flex;align-items:center;gap:7px;background:#fff;border:1.5px solid #D5DAF0;border-radius:20px;padding:9px 16px}
+.card-overlay-txt{font-size:12px;font-weight:600;color:#1C2237}
 .ctag{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ad);margin-bottom:13px;display:flex;align-items:center;gap:6px}
 .ctag-note{font-weight:400;letter-spacing:0;text-transform:none;color:var(--t3);font-style:italic}
 .plans{display:flex;flex-direction:column;gap:9px}
@@ -212,7 +215,7 @@ const S = {
   conv:[], u:{name:'',email:'',dob:'',gender:'male',income:0,smoker:false,plan:''},
   q:{cover:0,term:20,premium:0,fund:'balanced'}, stage:'start', busy:false,
   medVals:{alc:'none',cc:'no',hosp:'no',medic:'no',fhist:'no',haz:'no'},
-  activeCard:null, nameMatched:false, sigData:null, nominees:[]
+  activeCard:null, nameMatched:false, nominees:[]
 };
 let _attachFile = null;
 
@@ -236,11 +239,13 @@ function calcProtPremium(cover,age,term,smoker,gender){
   if(smoker)annual*=1.35; if(gender==='female')annual*=0.85;
   return Math.max(5,Math.ceil(annual/12));
 }
+
 function calcSavMaturity(premium,term){
   const r=0.01/12; let fv=0;
   for(let i=0;i<term*12;i++)fv=(fv+premium)*(1+r);
   return Math.round(fv);
 }
+
 function calcInvMaturity(premium,term,fundKey){
   const r=FUNDS[fundKey].rate/100/12; let fv=0;
   for(let y=1;y<=term;y++){for(let m=0;m<12;m++)fv=(fv+premium)*(1+r);fv*=0.99;}
@@ -278,16 +283,23 @@ const STAGE_MAP={
 function lockCard(id){
   G(id).classList.add('done');
   if(S.activeCard===id)S.activeCard=null;
+  const comp=G(id).closest('.comp');
+  if(!comp.querySelector('.card-overlay')){
+    const ov=document.createElement('div');ov.className='card-overlay';
+    ov.innerHTML=`<div class="card-overlay-pill"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1C2237" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><span class="card-overlay-txt">Double-click to edit</span></div>`;
+    comp.appendChild(ov);
+  }
   if(msgs.querySelector(`[data-sentinel="${id}"]`))return;
   const s=document.createElement('div');
   s.dataset.sentinel=id; s.dataset.convLen=S.conv.length; s.style.display='none';
-  G(id).closest('.comp').after(s);
+  comp.after(s);
 }
 
 function editCard(id,resetStage,force=false){
   const card=G(id);if(!card||(S.busy&&!force))return;
   if(id==='plan_card'){S.u={name:'',email:'',dob:'',gender:'male',income:0,smoker:false,plan:''};S.nameMatched=false;S.medVals={alc:'none',cc:'no',hosp:'no',medic:'no',fhist:'no',haz:'no'};S.nominees=[];}
   card.classList.remove('done');
+  const ov=card.closest('.comp')?.querySelector('.card-overlay');if(ov)ov.remove();
   const sentinel=msgs.querySelector(`[data-sentinel="${id}"]`);
   if(sentinel){
     const cl=parseInt(sentinel.dataset.convLen);
@@ -296,7 +308,7 @@ function editCard(id,resetStage,force=false){
     sentinel.remove();
   }
   if(id==='ill_card'){const chk=G('ill_chk');if(chk){chk.checked=false;G('ill_btn').disabled=true;}}
-  if(id==='sig_card'){clearSig();S.sigData=null;}
+  if(id==='sig_card')clearSig();
   if(id==='info_card')setTimeout(checkInfo,50);
   S.activeCard=id;
   S.stage=resetStage; S.busy=false; setActive(true);
@@ -309,6 +321,7 @@ msgs.addEventListener('dblclick',e=>{
   if(!card||!STAGE_MAP[card.id])return;
   editCard(card.id,STAGE_MAP[card.id]);
 });
+
 msgs.addEventListener('touchend',e=>{
   const card=e.target.closest('.card.done');
   if(!card||!STAGE_MAP[card.id])return;
@@ -343,8 +356,6 @@ VALID ACTION TYPES (choose exactly one):
 - show_illustration    → year-by-year policy illustration
 - show_medical         → medical questionnaire
 - show_signature       → digital signature pad
-- show_payment         → payment form
-- show_confirmation    → final confirmation screen
 - select_plan          → select a plan; data: {"plan":"protection"|"savings"|"investment"}
 - prefill_info         → pre-fill info card from conversation or document; data: {"name":"","email":"","dob":"DD/MM/YYYY","gender":"male|female","income":0,"smoker":false} — include only known fields
 - prefill_quote        → adjust active quote card sliders; data: {"cover":0,"term":0,"premium":0,"fund":"aggressive|balanced|passive"} — include only known fields
@@ -410,11 +421,8 @@ JOURNEY LOGIC — cards are the confirmation gates; guide the user to each one t
 - Stage "illustration_agreed": emit show_medical; on the following turn if medical info is known emit prefill_medical
 - Stage "medical_done" + passportVerified false: ask user to share a government-issued photo ID (passport, driving licence, national ID, or residence permit) via the paperclip button — action none
 - If user wants to change plan but hasn't specified which one: first warn that current progress will be cleared and ask if they want to proceed (action none) — only emit reset_to_plan_selection on the next turn if the user confirms
-- Stage "medical_done" + passportVerified true: trigger show_signature directly
 - Stage "doc_uploaded": trigger show_signature
-- Stage "signed": trigger show_payment
 - Stage "paid": trigger show_nominee; if nominee information is already known from conversation emit prefill_nominee on the following turn
-- Stage "nominee_done": trigger show_confirmation
 
 CONFIRMATION DETECTION — when activeCard is set and is not plan_card, nom_card, sig_card or pay_card:
 Priority rule — check your immediately preceding message first:
@@ -436,8 +444,8 @@ RULES:
 - Set "message" to "" when the user's input is an unambiguous field value (a name, email, date, number, yes/no, or a clear directive matching an option you offered) — execute the action silently; the card updating is the feedback. Only respond with a message when: the card just became fully filled, there is genuine ambiguity, the user asked a question, a problem needs flagging, or your response is itself the deliverable (a comparison, an explanation)
 - Keep responses warm and concise (2–3 sentences); never end a sentence or message with a period — drop all terminal punctuation for a casual, conversational feel
 - Never invent premium or maturity numbers — the UI calculates these
-- When pre-filling a card, narrate exactly what you've filled in and ask the user to review before confirming
-- Collect any information naturally through conversation — once you have enough to fill a card, emit the prefill action and ask for confirmation
+- Emit prefill actions incrementally as each field value is learned — one field at a time is correct; do not wait until all fields are known before prefilling. When ALL required fields for the active card are now known, switch out of silent mode: briefly confirm what was captured and invite the user to submit ("That's everything — press [button label] above, or say confirm"). For document-based prefills, state exactly which fields were extracted and which are still missing
+- Required fields by card — info card: name, email, DOB, income (gender and smoker have defaults so do not block completion); medical card: height and weight (all toggles have defaults); nominee card: at least one nominee with name, relationship, and shares totalling 100%. Once the completion threshold is met, invite confirmation without waiting for the user to prompt you
 - Acknowledge death/disability topics with sensitivity
 - If asked off-topic questions, acknowledge briefly and redirect to insurance
 - Do not re-trigger already-completed stages
@@ -470,6 +478,7 @@ function parseResp(text){
 
 // ── Chat rendering ──
 function showTyping(show){typing.style.display=show?'flex':'none';scroll();}
+
 function scroll(){setTimeout(()=>msgs.scrollTop=msgs.scrollHeight,60);}
 
 function addBot(text){
@@ -477,11 +486,13 @@ function addBot(text){
   row.innerHTML=`<div class="av">${ic.brand}</div><div class="bbl">${text.replace(/\n/g,'<br>')}</div>`;
   msgs.appendChild(row);scroll();
 }
+
 function addUser(html){
   const row=document.createElement('div');row.className='row u';
   row.innerHTML=`<div class="bbl">${html}</div>`;
   msgs.appendChild(row);scroll();
 }
+
 function addComp(html){
   const div=document.createElement('div');div.className='comp';div.innerHTML=html;
   msgs.appendChild(div);scroll();return div;
@@ -495,6 +506,7 @@ function clearAttachment(){
   G('chat-file').value='';
   snd.disabled=!inp.value.trim()||S.busy;
 }
+
 G('attach-btn').addEventListener('click',()=>G('chat-file').click());
 G('chat-file').addEventListener('change',function(){
   const file=this.files[0];if(!file)return;
@@ -508,6 +520,7 @@ G('chat-file').addEventListener('change',function(){
   };
   reader.readAsDataURL(file);
 });
+
 G('attach-clear').addEventListener('click',clearAttachment);
 
 // ── Flow engine ──
@@ -523,8 +536,6 @@ async function executeAction(action){
     case 'show_illustration':     renderIllustration();break;
     case 'show_medical':          renderMedical();break;
     case 'show_signature':        renderSignature();break;
-    case 'show_payment':          renderPayment();break;
-    case 'show_confirmation':     renderConfirmation();break;
     case 'show_nominee':          renderNominee();break;
     case 'prefill_nominee':       handlePrefillNominee(action.data);break;
     case 'select_plan':           handleSelectPlan(action.data);break;
@@ -533,7 +544,7 @@ async function executeAction(action){
     case 'prefill_medical':       handlePrefillMedical(action.data);break;
     case 'confirm_active_card':   handleConfirmActiveCard();break;
     case 'passport_verified':     await handlePassportVerified();break;
-    case 'reset_to_plan_selection': S.u.plan='';editCard('plan_card','start',true);break;
+    case 'reset_to_plan_selection': editCard('plan_card','start',true);break;
   }
 }
 
@@ -549,7 +560,11 @@ function handleSelectPlan(data){
   }
   else{S.q.premium=S.u.income?Math.max(100,Math.min(10000,Math.round(S.u.income*0.1))):500;S.q.term=10;S.q.fund='balanced';}
   const planCard=G('plan_card');
-  if(planCard&&!planCard.classList.contains('done'))lockCard('plan_card');
+  if(planCard&&!planCard.classList.contains('done')){
+    planCard.querySelectorAll('.po').forEach(b=>b.classList.remove('sel'));
+    const sel=planCard.querySelector(`[onclick*="${plan}"]`);if(sel)sel.classList.add('sel');
+    lockCard('plan_card');
+  }
   if(hadDetails){
     S.medVals={alc:'none',cc:'no',hosp:'no',medic:'no',fhist:'no',haz:'no'};
     S.nominees=[];
@@ -636,18 +651,12 @@ async function sendUserMsg(){
   addUser(bubbleHtml);
   inp.value='';resizeInp();
 
-  // Document comparison or normal chat
+  // Document or text message
   let resp;
   if(hasFile){const file=_attachFile;clearAttachment();resp=await callAPI(text||"I've shared a document — please analyse it",{base64:file.base64,mediaType:file.mediaType});}
   else{resp=await callAPI(text);}
   if(resp.message&&resp.message.trim())addBot(resp.message);
   await executeAction(resp.action);
-  S.busy=false;setActive(true);
-}
-
-async function sendAction(displayMsg,apiMsg){
-  if(S.busy)return;S.busy=true;setActive(false);addUser(displayMsg);
-  const resp=await callAPI(apiMsg||displayMsg);if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);
   S.busy=false;setActive(true);
 }
 
@@ -702,12 +711,14 @@ function renderInfoForm(){
 
 function maskDOB(e){let v=e.target.value.replace(/\D/g,'');if(v.length>2)v=v.slice(0,2)+'/'+v.slice(2);if(v.length>5)v=v.slice(0,5)+'/'+v.slice(5);e.target.value=v.slice(0,10);}
 function setTg(field,val,btn){btn.parentElement.querySelectorAll('.tb').forEach(b=>b.classList.remove('on'));btn.classList.add('on');if(field==='gender')S.u.gender=val;else S.u.smoker=val==='yes';}
+
 function checkInfo(){
   const nameOk=G('f_name').value.trim().length>=2;
   const emailOk=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(G('f_email').value.trim());
   const dobOk=validDOB(G('f_dob').value);const incOk=Number(G('f_inc').value)>0;
   G('info_btn').disabled=!(nameOk&&emailOk&&dobOk&&incOk);
 }
+
 function validDOB(val){if(val.length!==10)return false;const age=getAge(val);return age!==null&&age>=18&&age<=70;}
 
 function prefillInfoCard(u){
@@ -768,11 +779,13 @@ function renderProtQuote(){
     <button class="btn" onclick="acceptProtQ()">This looks good, proceed ${ic.arrow}</button>
   </div>`);
 }
+
 function upProtQ(){
   const cover=Number(G('pc_csl').value),term=Number(G('pc_tsl').value);S.q.cover=cover;S.q.term=term;
   const mp=calcProtPremium(cover,getAge(S.u.dob),term,S.u.smoker,S.u.gender);
   G('pc_cv').textContent=fmt(cover);G('pc_tv').textContent=term+' years';G('pc_mp').textContent=fmt(mp);G('pc_tp').textContent=fmt(mp*term*12);G('pc_ts').textContent=`over ${term} years`;
 }
+
 async function acceptProtQ(){
   const {cover,term}=S.q,mp=calcProtPremium(cover,getAge(S.u.dob),term,S.u.smoker,S.u.gender);
   const wasSilent=_silentConfirm;_silentConfirm=false;
@@ -801,10 +814,12 @@ function renderSavQuote(){
     <button class="btn" onclick="acceptSavQ()">This looks good, proceed ${ic.arrow}</button>
   </div>`);
 }
+
 function upSavQ(){
   const prem=Number(G('sv_psl').value),term=Number(G('sv_tsl').value);S.q.premium=prem;S.q.term=term;const cover=Math.min(120*prem,1e6);
   G('sv_pv').textContent=fmt(prem);G('sv_tv').textContent=term+' years';G('sv_cv').textContent=fmt(cover);G('sv_mv').textContent=fmt(calcSavMaturity(prem,term));G('sv_tp').textContent=fmt(prem*term*12);G('sv_ts').textContent=`over ${term} years`;
 }
+
 async function acceptSavQ(){
   const {premium,term}=S.q;const wasSilent=_silentConfirm;_silentConfirm=false;
   lockCard('sav_card');S.stage='quote_accepted';S.busy=true;setActive(false);
@@ -840,12 +855,15 @@ function renderInvQuote(){
     <button class="btn" onclick="acceptInvQ()">This looks good, proceed ${ic.arrow}</button>
   </div>`);
 }
+
 function pickFund(key,el){document.querySelectorAll('#fund_opts .fnd').forEach(f=>f.classList.remove('sel'));el.classList.add('sel');S.q.fund=key;upInvQ();}
+
 function upInvQ(){
   const prem=Number(G('iv_psl').value),term=Number(G('iv_tsl').value);S.q.premium=prem;S.q.term=term;
   const cover=Math.min(120*prem,1e6),mat=calcInvMaturity(prem,term,S.q.fund);
   G('iv_pv').textContent=fmt(prem);G('iv_tv').textContent=term+' years';G('iv_cv').textContent=fmt(cover);G('iv_mv').textContent=fmt(mat);G('iv_ms').textContent=`after ${term} yrs · ${FUNDS[S.q.fund].label}`;G('iv_tp').textContent=fmt(prem*term*12);
 }
+
 async function acceptInvQ(){
   const {premium,term,fund}=S.q,mat=calcInvMaturity(premium,term,fund);
   const wasSilent=_silentConfirm;_silentConfirm=false;
@@ -871,6 +889,7 @@ function renderIllustration(){
     <button class="btn" id="ill_btn" disabled onclick="agreeIll()">I agree, proceed ${ic.arrow}</button>
   </div>`);
 }
+
 async function agreeIll(){
   const wasSilent=_silentConfirm;_silentConfirm=false;
   lockCard('ill_card');S.stage='illustration_agreed';S.busy=true;setActive(false);
@@ -895,12 +914,15 @@ function renderMedical(){
     <button class="btn" id="med_btn" disabled onclick="submitMed()">Submit medical information ${ic.arrow}</button>
   </div>`);
 }
+
 function calcBMI(){
   const h=Number(G('m_h').value),w=Number(G('m_w').value);
   const btn=G('med_btn');if(btn)btn.disabled=!(h>0&&w>0);
   if(h>0&&w>0){const bmi=(w/Math.pow(h/100,2)).toFixed(1);const box=G('bmi_box');box.textContent='BMI '+bmi;box.style.color=(bmi<18.5||bmi>30)?'var(--gold)':'var(--a)';}
 }
+
 function setRb(key,val,btn){btn.parentElement.querySelectorAll('.rb').forEach(b=>b.classList.remove('on'));btn.classList.add('on');S.medVals[key]=val;}
+
 async function submitMed(){
   const wasSilent=_silentConfirm;_silentConfirm=false;
   const h=G('m_h').value,w=G('m_w').value;
@@ -927,6 +949,7 @@ function renderSignature(){
   </div>`);
   initSigPad();
 }
+
 function initSigPad(){
   const canvas=G('sigc'),ctx=canvas.getContext('2d'),dpr=window.devicePixelRatio||1,w=canvas.offsetWidth||400;
   canvas.width=w*dpr;canvas.height=145*dpr;ctx.scale(dpr,dpr);ctx.strokeStyle='#0BAF88';ctx.lineWidth=2;ctx.lineCap='round';ctx.lineJoin='round';let drawing=false;
@@ -938,13 +961,19 @@ function initSigPad(){
   canvas.addEventListener('touchstart',start,{passive:false});canvas.addEventListener('touchmove',move,{passive:false});canvas.addEventListener('touchend',end);
   window._sigCtx=ctx;window._sigCanvas=canvas;
 }
+
 function clearSig(){const c=window._sigCanvas;if(c)window._sigCtx.clearRect(0,0,c.width,c.height);}
+
 async function submitSig(){
   const c=window._sigCanvas;if(!c)return;
   const data=c.getContext('2d').getImageData(0,0,c.width,c.height).data;
   if(!Array.from(data).some((v,i)=>i%4===3&&v>0)){addBot("Please draw your signature on the canvas before proceeding");return;}
-  S.sigData=c.toDataURL();lockCard('sig_card');S.stage='signed';
-  await sendAction('Signature submitted',"I've provided my digital signature — please proceed to payment");
+  lockCard('sig_card');S.stage='signed';
+  S.busy=true;setActive(false);
+  addUser('Signature submitted');
+  await delay(400);
+  renderPayment();
+  S.busy=false;setActive(true);
 }
 
 // ── Payment ──
@@ -966,8 +995,10 @@ function renderPayment(){
     <button class="btn" id="pay_btn" onclick="submitPay('${fmt(amount)}')">Pay ${fmt(amount)} ${ic.arrow}</button>
   </div>`);
 }
+
 function fmtCard(el){let v=el.value.replace(/\D/g,'').slice(0,16);el.value=v.match(/.{1,4}/g)?.join(' ')||v;}
 function fmtExp(el){let v=el.value.replace(/\D/g,'');if(v.length>2)v=v.slice(0,2)+' / '+v.slice(2,4);el.value=v;}
+
 async function submitPay(fmtAmt){
   const nm=G('py_name').value.trim(),cd=G('py_card').value.replace(/\s/g,''),ex=G('py_exp').value.replace(/[\s\/]/g,''),cv=G('py_cvv').value.trim();
   let err=false;
@@ -1071,6 +1102,7 @@ function handlePrefillNominee(nominees){
   });
   checkNoms();const comp=G('nom_card').closest('.comp');if(comp){msgs.appendChild(comp);scroll();}
 }
+
 async function submitNominee(){
   const nominees=[];
   G('nom_rows').querySelectorAll('.nom-row').forEach(row=>{
@@ -1078,10 +1110,11 @@ async function submitNominee(){
     nominees.push({name:G(`nom_n_${i}`).value.trim(),relationship:G(`nom_r_${i}`).value,share:Number(G(`nom_p_${i}`).value)});
   });
   S.nominees=nominees;
-  lockCard('nom_card');S.stage='nominee_done';S.busy=true;setActive(false);
+  lockCard('nom_card');S.stage='nominee_done';
+  S.busy=true;setActive(false);
   addUser('Nominees confirmed — '+nominees.map(n=>`${n.name} (${n.relationship}) ${n.share}%`).join(' · '));
-  const resp=await callAPI('Nominees confirmed — please show the final confirmation screen');
-  if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
+  await delay(400);
+  renderConfirmation();
 }
 
 // ── Confirmation ──
@@ -1112,9 +1145,7 @@ snd.addEventListener('click',sendUserMsg);
 
 // ── Init ──
 setTimeout(()=>{typing.style.display='flex';scroll();},300);
-setTimeout(()=>{typing.style.display='none';addBot("Welcome to Life Guard — let's start your life insurance journey with a few simple questions");},900);
-setTimeout(()=>{typing.style.display='flex';scroll();},1200);
-setTimeout(()=>{typing.style.display='none';addBot("What are you seeking from your life insurance policy?");renderPlans();setActive(true);},2000);
+setTimeout(()=>{typing.style.display='none';addBot("Welcome to Life Guard — what are you looking for in a life insurance policy?");renderPlans();setActive(true);},900);
 </script>
 </body>
 </html>
