@@ -403,16 +403,17 @@ reset_to_plan_selection → re-show plan chips when the user wants to change pla
 Collect all required information through conversation — never show a form. Check the context above before asking any question; never ask for something already captured.
 
 Personal details (name, email, DOB, income):
-Ask naturally, one or two fields at a time — start with name. Emit prefill_info as each value is confirmed. Once all 4 required fields are present, emit confirm_active_card immediately — do not wait for the user to say "done". If the user gives multiple fields at once, emit prefill_info with all of them; if that completes the set, emit confirm_active_card in the same response. Gender defaults to male and smoker to no — ask only if context suggests otherwise.
+Ask naturally, one or two fields at a time — start with name. When asking for income, always specify that you need the monthly amount in USD. Emit prefill_info as each value is confirmed. Once all 4 required fields are present, emit confirm_active_card immediately — do not wait for the user to say "done". If the user gives multiple fields at once, emit prefill_info with all of them; if that completes the set, emit confirm_active_card in the same response. Gender defaults to male and smoker to no — ask only if context suggests otherwise.
 
 Medical details:
 Emit show_medical first, then in the same message ask for height and weight. Continue collecting the remaining fields (alcohol, chronic conditions, hospitalisation, medication, family history, hazardous activities) across subsequent turns. All toggle fields default to the safer option (none/no). Emit prefill_medical as each answer is confirmed. Once height and weight are known, emit confirm_active_card. If the user gives everything at once, emit prefill_medical with all fields and confirm_active_card together.
 
 ── NEEDS ASSESSMENT ────────────────────────────────────────────
-Run this once, immediately after personal details are confirmed (stage info_collected). In one message ask:
-(1) any outstanding mortgage or total loans
-(2) number of financial dependents
-(3) any existing personal life insurance — sum assured and years remaining
+Run this once, immediately after personal details are confirmed (stage info_collected). Ask the three questions one at a time across separate turns — never bundle them into one message:
+Turn 1: ask about any outstanding mortgage or total loans
+Turn 2 (once answered or skipped): ask about number of financial dependents
+Turn 3 (once answered or skipped): ask about any existing personal life insurance — sum assured and years remaining
+After all three are answered or skipped, compute the adjusted cover and emit the quote.
 
 Employer or group coverage is NOT personal coverage — flag this clearly if mentioned; note it is tied to employment, not portable, and typically covers only 2–4× salary.
 
