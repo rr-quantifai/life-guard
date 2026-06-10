@@ -47,8 +47,8 @@ exports.handler = async (event) => {
         model: 'claude-sonnet-4-6',
         max_tokens: 2048,
         system: [
-          {type:'text', text:systemStatic, cache_control:{type:'ephemeral'}},
-          {type:'text', text:systemDynamic}
+          { type: 'text', text: systemStatic, cache_control: { type: 'ephemeral' } },
+          { type: 'text', text: systemDynamic }
         ],
         messages: apiMessages
       })
