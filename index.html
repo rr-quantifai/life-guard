@@ -212,7 +212,7 @@ const AGE_RATES = {
 };
 
 const S = {
-  conv:[], u:{name:'',email:'',dob:'',gender:'male',income:0,smoker:false,plan:''},
+  conv:[], u:{name:'',email:'',dob:'',gender:'male',income:0,smoker:false,smokerConfirmed:false,plan:''},
   q:{cover:0,term:20,premium:0,fund:'balanced'}, stage:'start', busy:false,
   medVals:{alc:'none',cc:'no',hosp:'no',medic:'no',fhist:'no',haz:'no',height:0,weight:0},
   medExplicit:new Set(), activeCard:null, nameMatched:false, nominees:[]
@@ -298,7 +298,7 @@ function lockCard(id){
 function editCard(id,resetStage,force=false){
   if(S.busy&&!force)return;
   if(id==='plan_card'){
-    S.u={name:'',email:'',dob:'',gender:'male',income:0,smoker:false,plan:''};
+    S.u={name:'',email:'',dob:'',gender:'male',income:0,smoker:false,smokerConfirmed:false,plan:''};
     S.nameMatched=false;
     S.medVals={alc:'none',cc:'no',hosp:'no',medic:'no',fhist:'no',haz:'no',height:0,weight:0};
     S.medExplicit=new Set();
@@ -375,7 +375,7 @@ show_investment_quote  optional data:{"premium":0,"term":0,"fund":"aggressive|ba
 
 show_illustration → show a year-by-year policy table; prerequisite: a quote has been accepted
 
-show_medical → activate the medical collection stage AND ask for height and weight in the same message; prerequisite: illustration agreed
+show_medical → activate the medical collection stage AND ask for height and weight in the same message, preceded by a brief honest-answers note — e.g. "Just so you know, honest answers here really matter — any undisclosed condition can affect your coverage or lead to a claim being declined. Nothing here is judged, it just needs to be accurate"; prerequisite: illustration agreed
 
 show_signature → show a signature canvas; prerequisites: medical complete AND passport verified
 
@@ -401,7 +401,7 @@ scroll_to_card → smooth-scroll the active card into view; use when the user wa
 Collect all required information through conversation — never show a form. Check the context above before asking any question; never ask for something already captured.
 
 Personal details (name, email, DOB, income):
-Ask naturally, one or two fields at a time — start with name. When asking for income, always specify that you need the monthly amount in USD. Emit prefill_info as each value is confirmed. Once all 4 required fields are present, emit confirm_active_card immediately — do not wait for the user to say "done". If the user gives multiple fields at once, emit prefill_info with all of them; if that completes the set, emit confirm_active_card in the same response. Gender defaults to male — ask only if context suggests otherwise. Smoker status must always be asked explicitly before emitting confirm_active_card, regardless of context
+Ask naturally, one or two fields at a time — start with name. When asking for income, always specify that you need the monthly amount in USD. Emit prefill_info as each value is confirmed. Once all 4 required fields AND smoker status are confirmed, show a brief summary of all collected details and invite confirmation — e.g. "Here's what I have: [summary]. Just say confirmed when you're happy and I'll lock those in". Only emit confirm_active_card when the user confirms. Do not auto-submit. If the user gives multiple fields at once, emit prefill_info with all of them, then continue to the next missing field or the smoker question as appropriate. Gender defaults to male — ask only if context suggests otherwise. Smoker status must always be asked explicitly before emitting confirm_active_card, regardless of context. When asking, include a natural disclaimer — e.g. "honest answers here ensure seamless claims down the line". Once the user answers, immediately emit prefill_info with the smoker field — this is required for the form to submit
 
 Medical details:
 Emit show_medical first, then in the same message ask for height and weight. Once you have height and weight, emit prefill_medical with those values and continue asking the remaining questions one at a time: (1) alcohol consumption, (2) any chronic conditions, (3) hospitalisation in the last 5 years, (4) regular medication, (5) family history of cancer, heart disease, or stroke, (6) hazardous activities. All toggle fields default to none/no — if the user skips one, move on. Once all six questions have been asked and answered or skipped, emit a final prefill_medical containing ALL 8 fields — height, weight, alc, cc, hosp, medic, fhist, haz — with their confirmed values or safe defaults. This single batch signals completion and triggers automatic submission. Do not emit confirm_active_card for medical; the complete prefill_medical is the trigger
@@ -462,7 +462,7 @@ When activeCard is set and is not plan_card, nom_card, sig_card, or pay_card —
 - It contained no question AND the user's message is solely a confirmation word (yes, sure, ok, proceed, go ahead, looks good, fine, yep, absolutely) → emit confirm_active_card
 - Confirmation word plus a question or qualifier → answer the question; action none
 - plan_card active → ask the user to pick from the options above the chat bar
-- info_card active → if all 4 required fields are present emit confirm_active_card; otherwise ask for the missing ones
+- info_card active → if all 4 required fields AND smoker status are confirmed, show a summary and ask for confirmation before emitting confirm_active_card; otherwise ask for the missing fields
 - med_card active → if height and weight are present emit confirm_active_card; otherwise ask for them
 - sig_card active → ask the user to draw their signature on the canvas
 - pay_card active → ask the user to fill in their card details in the panel above
@@ -609,9 +609,6 @@ function handleSelectPlan(data){
 
 function handlePrefillInfo(data){
   prefillInfoCard(data);
-  if(S.activeCard==='info_card'&&checkInfo()){
-    setTimeout(()=>{if(S.activeCard==='info_card'&&!S.busy&&checkInfo())submitInfo();},300);
-  }
 }
 
 function handlePrefillQuote(data){
@@ -656,7 +653,7 @@ function handleConfirmActiveCard(){
   if(id==='nom_card'){addBot("Please fill in your nominee details in the panel above — I can't do that part for you");return;}
   if(id==='info_card'){
     if(checkInfo()){_silentConfirm=true;submitInfo();}
-    else addBot("I still need a few things — your name, email, date of birth, and monthly income");
+    else addBot("I still need a few things — your name, email, date of birth, monthly income, and whether you smoke");
     return;
   }
   if(id==='med_card'){
@@ -731,7 +728,7 @@ function renderInfoForm(){
 }
 
 function checkInfo(){
-  return S.u.name?.trim().length>=2&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(S.u.email)&&validDOB(S.u.dob)&&S.u.income>0;
+  return S.u.name?.trim().length>=2&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(S.u.email)&&validDOB(S.u.dob)&&S.u.income>0&&S.u.smokerConfirmed;
 }
 
 function validDOB(val){if(val.length!==10)return false;const age=getAge(val);return age!==null&&age>=18&&age<=70;}
@@ -742,7 +739,7 @@ function prefillInfoCard(u){
   if(u.dob!==undefined)S.u.dob=u.dob;
   if(u.income!==undefined)S.u.income=Number(u.income);
   if(u.gender!==undefined)S.u.gender=u.gender;
-  if(u.smoker!==undefined)S.u.smoker=!!u.smoker;
+  if(u.smoker!==undefined){S.u.smoker=!!u.smoker;S.u.smokerConfirmed=true;}
 }
 
 async function submitInfo(){
