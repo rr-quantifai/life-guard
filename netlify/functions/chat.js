@@ -16,7 +16,7 @@ exports.handler = async (event) => {
   };
 
   try {
-    const { messages, systemPrompt, imageData } = JSON.parse(event.body);
+    const { messages, systemStatic, systemDynamic, imageData } = JSON.parse(event.body);
 
     let apiMessages = messages.map(m => ({ ...m }));
     if (imageData && apiMessages.length > 0) {
@@ -40,12 +40,16 @@ exports.handler = async (event) => {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'prompt-caching-2024-07-31'
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 2048,
-        system: systemPrompt,
+        system: [
+          {type:'text', text:systemStatic, cache_control:{type:'ephemeral'}},
+          {type:'text', text:systemDynamic}
+        ],
         messages: apiMessages
       })
     });
