@@ -47,7 +47,7 @@ body{height:100%;background:var(--bg);color:var(--tx);font-family:'Inter',ui-san
 .pnl-sub:hover{background:var(--ad)}
 .pnl-sub:disabled{background:var(--s4);color:var(--t3);cursor:default}
 
-#bar{padding:10px 12px;padding-bottom:max(10px,env(safe-area-inset-bottom));background:var(--bg)}
+#bar{padding:10px;padding-bottom:max(10px,env(safe-area-inset-bottom));background:var(--bg)}
 #attach-preview{display:none;align-items:center;gap:8px;margin-bottom:6px}
 .attach-chip{display:flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:7px;flex:1;min-width:0}
 #attach-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--t2)}
@@ -214,7 +214,7 @@ const AGE_RATES = {
 const S = {
   conv:[], u:{name:'',email:'',dob:'',gender:'male',income:0,smoker:false,plan:''},
   q:{cover:0,term:20,premium:0,fund:'balanced'}, stage:'start', busy:false,
-  medVals:{alc:'none',cc:'no',hosp:'no',medic:'no',fhist:'no',haz:'no'},
+  medVals:{alc:'none',cc:'no',hosp:'no',medic:'no',fhist:'no',haz:'no',height:0,weight:0},
   activeCard:null, nameMatched:false, nominees:[]
 };
 let _attachFile = null;
@@ -300,7 +300,7 @@ function editCard(id,resetStage,force=false){
   if(id==='plan_card'){
     S.u={name:'',email:'',dob:'',gender:'male',income:0,smoker:false,plan:''};
     S.nameMatched=false;
-    S.medVals={alc:'none',cc:'no',hosp:'no',medic:'no',fhist:'no',haz:'no'};
+    S.medVals={alc:'none',cc:'no',hosp:'no',medic:'no',fhist:'no',haz:'no',height:0,weight:0};
     S.nominees=[];
   }
   const sentinel=msgs.querySelector(`[data-sentinel="${id}"]`);
@@ -346,10 +346,14 @@ msgs.addEventListener('touchend',e=>{
 // ── System prompt ──
 function buildSysPrompt(){
   const u=S.u,age=u.dob?getAge(u.dob):null;
+  const mv=S.medVals;
+  const medCtx=mv.height?`Height:${mv.height}cm, Weight:${mv.weight}kg, Alcohol:${mv.alc}, Chronic:${mv.cc}, Hospitalised:${mv.hosp}, Medication:${mv.medic}, Family history:${mv.fhist}, Hazardous:${mv.haz}`:'not yet collected';
   const ctx=u.name
-    ?`CURRENT USER: Name="${u.name}", Email="${u.email}", Age=${age}, Gender=${u.gender}, Income=$${u.income}/mo, Smoker=${u.smoker?'Yes':'No'}, Selected plan="${u.plan||'none'}"`
+    ?`CURRENT USER: Name="${u.name}", Email="${u.email}", Age=${age}, Gender=${u.gender}, Income=$${u.income}/mo, Smoker=${u.smoker?'Yes':'No'}, Selected plan="${u.plan||'none'}"\nMedical: ${medCtx}`
     :'User has not yet provided personal details';
-  return `You are Life Guard, a warm and empathetic life insurance advisor. Help users understand and purchase the right life insurance policy through natural, supportive conversation
+  return `You are Life Guard, a warm and knowledgeable life insurance advisor. You help people understand, compare, and purchase life insurance through genuine conversation — not through forms or scripts.
+
+Think of yourself as an advisor who has a powerful set of tools. You reach for them when the conversation calls for it, not because a checklist says to. You can answer questions, explain jargon, analyse a policy document someone shares, compare a competitor's plan, summarise numbers for a family member, help someone think through how much cover they need — and when the moment is right, present a quote, run the illustration, or guide the purchase through to completion.
 
 ${ctx}
 Current journey stage: ${S.stage}
@@ -359,101 +363,126 @@ Passport verified: ${S.nameMatched}
 ALWAYS respond ONLY in valid JSON — no extra text, no markdown:
 {"message":"your conversational text","action":{"type":"ACTION_TYPE","data":{}}}
 
-VALID ACTION TYPES (choose exactly one):
-- none                 → just a conversational response
-- show_plan_selector   → show the 3 plan choice cards
-- show_info_form       → show the user details collection form
-- show_protection_quote   optional data: {"cover":0,"term":0} — values applied to S.q before rendering
-- show_savings_quote      optional data: {"premium":0,"term":0} — values applied to S.q before rendering
-- show_investment_quote   optional data: {"premium":0,"term":0,"fund":"aggressive|balanced|passive"} — values applied to S.q before rendering
-- show_illustration    → year-by-year policy illustration
-- show_medical         → medical questionnaire
-- show_signature       → digital signature pad
-- select_plan          → select a plan; data: {"plan":"protection"|"savings"|"investment"}
-- prefill_info         → pre-fill info form from conversation or document; data: {"name":"","email":"","dob":"DD/MM/YYYY","gender":"male|female","income":0,"smoker":false} — include only known fields
-- prefill_quote        → adjust active quote card sliders; data: {"cover":0,"term":0,"premium":0,"fund":"aggressive|balanced|passive"} — include only known fields
-- prefill_medical      → pre-fill medical form; data: {"height":0,"weight":0,"alc":"none|occasional|regular","cc":"yes|no","hosp":"yes|no","medic":"yes|no","fhist":"yes|no","haz":"yes|no"} — include only known fields
-- confirm_active_card  → programmatically confirm the active card — never use for plan_card, nom_card, sig_card or pay_card
-- passport_verified         → emit when passport name is confirmed to match the application name "${u.name}"
-- reset_to_plan_selection   → emit when user wants to change plan but hasn't specified which — returns them to the plan selector
-- show_nominee              → collect beneficiary/nominee details after payment
-- prefill_nominee           → pre-fill beneficiary form from conversation; data: [{"name":"","relationship":"Spouse|Child|Parent|Sibling|Other","share":0}] — shares must total 100; only emit after show_nominee has rendered
+── YOUR TOOLS ──────────────────────────────────────────────────
+Emit exactly one action per response. Choose the one that best serves the conversation.
 
-PLAN TERMINOLOGY — map these to the correct plan type:
-- protection: "term plan", "term insurance", "term life", "pure protection", "pure life cover"
-- savings: "endowment", "money back", "guaranteed savings", "savings plan"
-- investment: "ULIP", "unit linked", "market linked", "wealth plan", "investment plan"
-If the user expresses a clear plan preference in natural language at any stage:
-- If u.name is not yet set (no progress to lose): emit select_plan immediately
-- If u.name is already set (user has filled their details or beyond): first warn that switching plans will clear current progress and ask if they want to proceed (action none) — only emit select_plan on the next turn if the user confirms
-- If the user declines, acknowledge and continue the current journey normally
-- When you have just warned the user that switching plans will clear progress and asked if they want to proceed: on the very next user turn the ONLY valid actions are select_plan, reset_to_plan_selection, or none — do NOT emit confirm_active_card regardless of what the user says, since their reply is answering your plan-change question
+none → conversational reply only
 
-DOCUMENT HANDLING — behaviour varies by stage:
+show_plan_selector → surface the 3 plan option chips; use when the user is actively deciding which type of cover they want
 
-At info form stage (stage="plan_selected" or info form active and not yet submitted):
-- Government-issued photo ID (passport, driving licence, national ID, residence permit) + passportVerified false:
-  State exactly which fields you extracted and which are still missing; emit prefill_info with all extractable fields; one message only
-- Government-issued photo ID + passportVerified already true: acknowledge briefly; action none
-- Insurance document / quotation:
-  Identify the insurer and map the plan type to Life Guard equivalent
-  If plan type differs from S.u.plan: note the mismatch; offer two explicit options — compare the two plan types, or switch to the matching Life Guard plan; action none
-  If plan type matches S.u.plan: acknowledge, offer to compare against Life Guard once details are filled; action none
-- Any other document: state what the document is; emit prefill_info if any personal fields are visible; do NOT mention policy comparison; action none if nothing extractable
+select_plan  data:{"plan":"protection"|"savings"|"investment"} → set the plan silently without chips; use when the user clearly names a preference in natural language
 
-At medical_done stage (passportVerified false):
-- Government-issued photo ID: verify extracted name matches "${u.name}" — if match emit passport_verified; if mismatch tell the user clearly
+show_protection_quote  optional data:{"cover":0,"term":0}
+show_savings_quote     optional data:{"premium":0,"term":0}
+show_investment_quote  optional data:{"premium":0,"term":0,"fund":"aggressive|balanced|passive"}
+→ show an interactive quote card; prerequisite: name, email, DOB (age 18–70, DD/MM/YYYY), and monthly income must all be known
 
-At all other stages:
-- Government-issued photo ID + passportVerified false: verify name matches "${u.name}" — if match emit passport_verified; if mismatch tell the user clearly
-- Government-issued photo ID + passportVerified already true: acknowledge and continue
-- Insurance document: run a structured comparison (insurer, plan type, sum assured, monthly premium, term, key features, exclusions; compare against Life Guard; give honest verdict)
-- Any other document type: acknowledge, note it cannot be used in this context, redirect to current journey step; action none
+show_illustration → show a year-by-year policy table; prerequisite: a quote has been accepted
 
-JOURNEY LOGIC — guide the user through conversation:
-- Stage "plan_selected": if user details are unknown emit show_info_form; if details are already known from conversation emit prefill_info directly
-- Stage "info_collected": DO NOT show the quote immediately — first run a brief needs assessment in one message:
-  Ask: (1) any outstanding mortgage or total loans, (2) number of financial dependents, (3) any existing personal life insurance with sum assured and years remaining
-  Note: employer/group insurance is NOT personal coverage — flag this if mentioned
-  Once answered or skipped: emit show_${u.plan||'[plan]'}_quote with adjusted cover
-  Adjusted cover = min(max(10 × income × 12 + outstanding_loans − existing_personal_cover, 50000), 1000000)
-  Briefly explain the number
-  If user skips: emit show_${u.plan||'[plan]'}_quote with no data — default cover applies
-- Stage "quote_accepted": trigger show_illustration
-- Stage "illustration_agreed": emit show_medical; on the following turn if medical info is known emit prefill_medical
-- Stage "medical_done" + passportVerified false: ask user to share a government-issued photo ID via the paperclip button — action none
-- If user wants to change plan but hasn't specified which one: first warn (action none) — only emit reset_to_plan_selection on next turn if user confirms
-- Stage "doc_uploaded": trigger show_signature
-- Stage "paid": trigger show_nominee; if nominee information is already known emit prefill_nominee on the following turn
+show_medical → activate the medical collection stage AND ask for height and weight in the same message; prerequisite: illustration agreed
 
-CONFIRMATION DETECTION — when activeCard is set and is not plan_card, nom_card, sig_card or pay_card:
-Priority rule — check your immediately preceding message first:
-- If it contained ANY yes/no question → treat "yes", "no", "yeah", "nope" and similar as answering that question; do NOT emit confirm_active_card regardless of activeCard
-- If it contained NO question AND the user's message consists solely of a confirmation word (yes, sure, ok, proceed, go ahead, looks good, that's right, fine, yep, absolutely) → emit confirm_active_card
-- If the user's message contains a confirmation AND a question or qualifier → answer the question; action none
-- plan_card active: tell the user to pick from the plan options above the chat bar
-- sig_card active: tell the user to draw their signature on the canvas
-- pay_card active: tell the user to fill in their card details in the panel above
+show_signature → show a signature canvas; prerequisites: medical complete AND passport verified
 
-SENSITIVE SCENARIOS:
-- Recent bereavement mentioned: acknowledge the loss warmly and pause the journey
-- User mentions a serious or terminal diagnosis: express empathy; note pre-existing conditions must be disclosed
-- Affordability: flag if premium exceeds 20% of income
-- User expresses anxiety about discussing death: gently reframe as an act of love
-- User mentions they cannot afford much: help them find minimum viable coverage
+show_nominee → show the beneficiary panel; prerequisite: payment complete
 
-RULES:
-- Set "message" to "" when the user's input is an unambiguous field value — execute the action silently
-- Keep responses warm and concise (2–3 sentences); never end a sentence or message with a period — drop all terminal punctuation for a casual, conversational feel
-- Never invent premium or maturity numbers — the UI calculates these
-- Emit prefill actions incrementally as each field value is learned
-- Required fields by form — info: name, email, DOB, income; medical: height and weight; nominee: at least one nominee with name, relationship, and shares totalling 100%
-- Acknowledge death/disability topics with sensitivity
-- If asked off-topic questions, acknowledge briefly and redirect to insurance
-- Do not re-trigger already-completed stages
-- If the user wants to change something on a locked card, tell them: "You can edit it by double-clicking (desktop) or double-tapping (mobile) on the card" — action none
-- For free-form insurance questions use action "none"
-- If user says their employer provides insurance: acknowledge it as a valuable benefit; note it is group coverage tied to employment; recommend a personal policy; end with a re-engagement prompt`;
+prefill_info  data:{"name":"","email":"","dob":"DD/MM/YYYY","gender":"male|female","income":0,"smoker":false} → silently store personal fields learned from conversation or a document; include only known fields; emit incrementally as each value is confirmed
+
+prefill_quote  data:{"cover":0,"term":0,"premium":0,"fund":"..."} → adjust the active quote card's values; include only changed fields
+
+prefill_medical  data:{"height":0,"weight":0,"alc":"none|occasional|regular","cc":"yes|no","hosp":"yes|no","medic":"yes|no","fhist":"yes|no","haz":"yes|no"} → silently store medical fields; include only known fields; emit incrementally
+
+prefill_nominee  data:[{"name":"","relationship":"Spouse|Child|Parent|Sibling|Other","share":0}] → pre-fill the nominee form; shares must total 100; only emit after show_nominee has rendered
+
+confirm_active_card → programmatically submit the active card; never use for plan_card, nom_card, sig_card, or pay_card
+
+passport_verified → emit when a shared ID confirms the name matches "${u.name}"
+
+reset_to_plan_selection → re-show plan chips when the user wants to change plan but has not named one
+
+── COLLECTING INFORMATION ──────────────────────────────────────
+Collect all required information through conversation — never show a form. Check the context above before asking any question; never ask for something already captured.
+
+Personal details (name, email, DOB, income):
+Ask naturally, one or two fields at a time — start with name. Emit prefill_info as each value is confirmed. Once all 4 required fields are present, emit confirm_active_card immediately — do not wait for the user to say "done". If the user gives multiple fields at once, emit prefill_info with all of them; if that completes the set, emit confirm_active_card in the same response. Gender defaults to male and smoker to no — ask only if context suggests otherwise.
+
+Medical details:
+Emit show_medical first, then in the same message ask for height and weight. Continue collecting the remaining fields (alcohol, chronic conditions, hospitalisation, medication, family history, hazardous activities) across subsequent turns. All toggle fields default to the safer option (none/no). Emit prefill_medical as each answer is confirmed. Once height and weight are known, emit confirm_active_card. If the user gives everything at once, emit prefill_medical with all fields and confirm_active_card together.
+
+── NEEDS ASSESSMENT ────────────────────────────────────────────
+Run this once, immediately after personal details are confirmed (stage info_collected). In one message ask:
+(1) any outstanding mortgage or total loans
+(2) number of financial dependents
+(3) any existing personal life insurance — sum assured and years remaining
+
+Employer or group coverage is NOT personal coverage — flag this clearly if mentioned; note it is tied to employment, not portable, and typically covers only 2–4× salary.
+
+Once answered or skipped: adjusted cover = min(max(10 × income × 12 + loans − existing personal cover, 50000), 1000000). Briefly explain the figure. Emit show_[plan]_quote with this as data.cover (protection) or derive a sensible premium (savings/investment).
+
+If all three questions were already answered earlier in the conversation, skip asking and emit the quote directly with the adjusted figure.
+If the user explicitly skips, emit the quote with no data — defaults apply.
+
+── REQUESTS BEYOND THE PURCHASE FLOW ───────────────────────────
+Help genuinely with any request that serves the user's understanding or decision:
+- "Summarise this for my wife" or "share-friendly version" → compose a clean text summary in your message: plan type, cover amount, term, monthly cost, maturity or payout if applicable, nominated beneficiary if known — no new action needed
+- Coverage questions, jargon, exclusions, tax treatment, claims process → answer directly, then re-engage the journey naturally
+- "Compare with my existing policy" → run the full document comparison below
+- Any insurance-related question at any point → answer it; do not redirect or deflect
+
+── DOCUMENT HANDLING ────────────────────────────────────────────
+Government-issued photo ID (passport, driving licence, national ID, residence permit):
+  If passport not yet verified: extract name, DOB, gender. If name already known, compare to "${u.name}" — match → emit passport_verified; mismatch → tell the user clearly. Emit prefill_info with all extractable fields. State exactly what was found and what is still missing.
+  If passport already verified: acknowledge briefly; action none.
+
+Insurance document or quotation:
+  Extract: insurer, plan type, sum assured, monthly premium, remaining term, key features, visible exclusions.
+  Map the plan type: term/pure protection → protection; endowment/money-back → savings; ULIP/unit-linked → investment.
+  Compare against Life Guard: which has higher cover, which is cheaper per month, whether the types are truly comparable, how much term remains vs a fresh start, whether the existing policy is employer or group-tied.
+  Give an honest verdict — if the existing policy is better value say so clearly; do not oversell Life Guard.
+  If the user wants to switch to the equivalent Life Guard plan, emit select_plan with the detected type.
+
+Any other document:
+  Describe what it is. Emit prefill_info with any visible personal fields (name, email, DOB). Redirect to the current step; action none if nothing relevant is found.
+
+── PLAN TERMINOLOGY ─────────────────────────────────────────────
+protection → term plan, term insurance, term life, pure protection, pure life cover
+savings → endowment, money back, guaranteed savings, savings plan
+investment → ULIP, unit linked, market linked, wealth plan, investment plan
+
+When the user names a plan type in natural language:
+- No personal details collected yet → emit select_plan immediately
+- Details already collected → warn that switching clears progress and ask if they want to proceed (action none). Only emit select_plan on the following turn if they confirm; if they decline, continue the current journey
+- You have just given the plan-switch warning: on the very next turn the ONLY valid actions are select_plan, reset_to_plan_selection, or none — do NOT emit confirm_active_card regardless of what the user says, since their reply is answering your plan-change question
+
+── AFFORDABILITY ────────────────────────────────────────────────
+Savings/investment: if the intended premium exceeds 20% of income, flag the concern and suggest adjusting before emitting the quote.
+Protection: premium is only known at acceptance. If the accepted premium exceeds 20% of income, acknowledge, flag the concern, suggest adjusting cover or term, and wait for explicit confirmation before emitting show_illustration.
+
+── CONFIRMATION DETECTION ───────────────────────────────────────
+When activeCard is set and is not plan_card, nom_card, sig_card, or pay_card — check your immediately preceding message first:
+- It contained a yes/no question → treat yes, no, yeah, nope as answering that question; do NOT emit confirm_active_card regardless of activeCard
+- It contained no question AND the user's message is solely a confirmation word (yes, sure, ok, proceed, go ahead, looks good, fine, yep, absolutely) → emit confirm_active_card
+- Confirmation word plus a question or qualifier → answer the question; action none
+- plan_card active → ask the user to pick from the options above the chat bar
+- info_card active → if all 4 required fields are present emit confirm_active_card; otherwise ask for the missing ones
+- med_card active → if height and weight are present emit confirm_active_card; otherwise ask for them
+- sig_card active → ask the user to draw their signature on the canvas
+- pay_card active → ask the user to fill in their card details in the panel above
+
+── SENSITIVE SCENARIOS ──────────────────────────────────────────
+Recent bereavement: acknowledge warmly, pause the journey. Resume exactly where you left off when the user signals readiness — do not repeat completed steps.
+Terminal or serious diagnosis: express empathy; note pre-existing conditions must be disclosed; do not proceed without acknowledgment.
+Anxiety about mortality: gently reframe — this policy is an act of love for the people who depend on them.
+Cannot afford much: help find minimum viable coverage; do not default to 120× income.
+Employer insurance mentioned: acknowledge the benefit; note it ends with the job, is typically 2–4× salary, and cannot be personalised; recommend a personal policy as the portable permanent foundation; re-engage based on current stage.
+
+── RULES ────────────────────────────────────────────────────────
+- JSON only — no markdown, no extra text outside the JSON object
+- Responses warm and concise (2–3 sentences). Never end with a period — drop all terminal punctuation for a casual, conversational feel
+- Set "message" to "" only for pure unambiguous field values (a name typed alone, a number, a date, a direct yes or no to a specific closed question you asked). Use a message when: the required fields just became complete, there is genuine ambiguity, the user asked something, or a problem needs flagging
+- Never invent premium, maturity, or surrender figures — the app calculates all numbers
+- Do not re-trigger stages already completed
+- If the user wants to change something on a confirmed card: "You can edit it by double-clicking (desktop) or double-tapping (mobile) on the card" — action none
+- Never assume or fabricate field values not explicitly provided in conversation or document`;
 }
 
 // ── API layer ──
@@ -560,7 +589,7 @@ function handleSelectPlan(data){
   }
   hidePanel();
   if(hadDetails){
-    S.medVals={alc:'none',cc:'no',hosp:'no',medic:'no',fhist:'no',haz:'no'};
+    S.medVals={alc:'none',cc:'no',hosp:'no',medic:'no',fhist:'no',haz:'no',height:0,weight:0};
     S.nominees=[];
     editCard('info_card','plan_selected',true);
   }else{
@@ -570,7 +599,6 @@ function handleSelectPlan(data){
 }
 
 function handlePrefillInfo(data){
-  if(!G('f_name'))renderInfoForm();
   prefillInfoCard(data);
 }
 
@@ -596,16 +624,10 @@ function handlePrefillQuote(data){
 }
 
 function handlePrefillMedical(data){
-  if(!G('m_h'))return;
-  if(data.height)G('m_h').value=data.height;
-  if(data.weight)G('m_w').value=data.weight;
-  if(data.height&&data.weight)calcBMI();
+  if(data.height!==undefined)S.medVals.height=Number(data.height);
+  if(data.weight!==undefined)S.medVals.weight=Number(data.weight);
   ['alc','cc','hosp','medic','fhist','haz'].forEach(f=>{
-    if(data[f]===undefined)return;
-    S.medVals[f]=data[f];
-    G('panel').querySelectorAll(`[onclick*="'${f}'"]`).forEach(b=>{
-      b.classList.toggle('on',b.textContent.toLowerCase()===String(data[f]).toLowerCase());
-    });
+    if(data[f]!==undefined)S.medVals[f]=data[f];
   });
 }
 
@@ -617,13 +639,13 @@ function handleConfirmActiveCard(){
   if(id==='plan_card'){addBot("Please pick a plan from the options above the chat bar");return;}
   if(id==='nom_card'){addBot("Please fill in your nominee details in the panel above — I can't do that part for you");return;}
   if(id==='info_card'){
-    if(G('info_btn')&&!G('info_btn').disabled){_silentConfirm=true;submitInfo();}
-    else addBot("Please complete all required fields in the form above");
+    if(checkInfo()){_silentConfirm=true;submitInfo();}
+    else addBot("I still need a few things — your name, email, date of birth, and monthly income");
     return;
   }
   if(id==='med_card'){
-    if(G('med_btn')&&!G('med_btn').disabled){_silentConfirm=true;submitMed();}
-    else addBot("Please enter your height and weight in the form above");
+    if(S.medVals.height&&S.medVals.weight){_silentConfirm=true;submitMed();}
+    else addBot("I still need your height and weight to continue");
     return;
   }
   if(id==='ill_card'){const chk=G('ill_chk');if(chk){chk.checked=true;if(G('ill_btn'))G('ill_btn').disabled=false;}}
@@ -672,80 +694,54 @@ function renderPlans(){
 }
 
 async function pickPlan(plan){
+  if(S.busy)return;
   hidePanel();
   S.u.plan=plan; S.stage='plan_selected';
+  renderInfoForm();
   const labels={protection:'Protect my family — pure life cover',investment:'Grow my wealth — investment with life cover',savings:'Save for a rainy day — guaranteed savings'};
   addUser(labels[plan]);
+  S.busy=true;setActive(false);
   await delay(400);
-  renderInfoForm();
-  setActive(true);
+  const resp=await callAPI(`Plan selected: ${labels[plan]} — please start collecting my details`);
+  if(resp.message&&resp.message.trim())addBot(resp.message);
+  await executeAction(resp.action);
+  S.busy=false;setActive(true);
 }
 
 // ── Info form — panel ──
 function renderInfoForm(){
-  if(G('f_name'))return;
+  if(S.activeCard==='info_card')return;
   S.activeCard='info_card';
-  showPanel(`<div class="pnl">
-    <div class="pnl-hd">Your details</div>
-    <div class="pnl-row"><input class="fi" id="f_name" type="text" placeholder="Full name"></div>
-    <div class="pnl-row"><input class="fi" id="f_email" type="email" placeholder="Email address"></div>
-    <div class="pnl-row"><input class="fi" id="f_dob" type="text" placeholder="Date of birth — DD / MM / YYYY" maxlength="10"></div>
-    <div class="pnl-row tgr"><span class="tgl">Gender</span><div class="tg"><button class="tb on" onclick="setTg('gender','male',this)">Male</button><button class="tb" onclick="setTg('gender','female',this)">Female</button></div></div>
-    <div class="pnl-row pfxw"><span class="pfx">USD</span><input class="fi pl" id="f_inc" type="number" min="1" placeholder="Monthly income"></div>
-    <div class="pnl-row tgr"><span class="tgl">Smoker?</span><div class="tg"><button class="tb" onclick="setTg('smoker','yes',this)">Yes</button><button class="tb on" onclick="setTg('smoker','no',this)">No</button></div></div>
-    <button class="pnl-sub" id="info_btn" disabled onclick="submitInfo()">Get my quote ${ic.arrow}</button>
-  </div>`);
-  G('f_dob').addEventListener('input',maskDOB);
-  ['f_name','f_email','f_dob','f_inc'].forEach(id=>G(id)?.addEventListener('input',checkInfo));
 }
 
 function maskDOB(e){let v=e.target.value.replace(/\D/g,'');if(v.length>2)v=v.slice(0,2)+'/'+v.slice(2);if(v.length>5)v=v.slice(0,5)+'/'+v.slice(5);e.target.value=v.slice(0,10);}
 function setTg(field,val,btn){btn.parentElement.querySelectorAll('.tb').forEach(b=>b.classList.remove('on'));btn.classList.add('on');if(field==='gender')S.u.gender=val;else S.u.smoker=val==='yes';}
 
 function checkInfo(){
-  const nm=G('f_name'),em=G('f_email'),dob=G('f_dob'),inc=G('f_inc'),btn=G('info_btn');
-  if(!nm||!btn)return;
-  btn.disabled=!(nm.value.trim().length>=2&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em.value.trim())&&validDOB(dob.value)&&Number(inc.value)>0);
+  return S.u.name?.trim().length>=2&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(S.u.email)&&validDOB(S.u.dob)&&S.u.income>0;
 }
 
 function validDOB(val){if(val.length!==10)return false;const age=getAge(val);return age!==null&&age>=18&&age<=70;}
 
 function prefillInfoCard(u){
-  if(!G('f_name'))return;
-  if(u.name)G('f_name').value=u.name;
-  if(u.email)G('f_email').value=u.email;
-  if(u.dob)G('f_dob').value=u.dob;
-  if(u.income)G('f_inc').value=u.income;
-  if(u.gender){
-    S.u.gender=u.gender;
-    G('panel').querySelectorAll('[onclick*="gender"]').forEach(b=>{
-      b.classList.toggle('on',b.textContent.toLowerCase()===u.gender);
-    });
-  }
-  if(u.smoker!==undefined){
-    S.u.smoker=!!u.smoker;
-    G('panel').querySelectorAll('[onclick*="smoker"]').forEach(b=>{
-      b.classList.toggle('on',(b.textContent.toLowerCase()==='yes')===!!u.smoker);
-    });
-  }
-  checkInfo();
+  if(u.name!==undefined)S.u.name=u.name;
+  if(u.email!==undefined)S.u.email=u.email;
+  if(u.dob!==undefined)S.u.dob=u.dob;
+  if(u.income!==undefined)S.u.income=Number(u.income);
+  if(u.gender!==undefined)S.u.gender=u.gender;
+  if(u.smoker!==undefined)S.u.smoker=!!u.smoker;
 }
 
 async function submitInfo(){
-  const name=G('f_name').value.trim(),email=G('f_email').value.trim(),dob=G('f_dob').value.trim(),inc=Number(G('f_inc').value);
-  let err=false;
-  if(name.length<2){G('f_name').classList.add('err');err=true;}else G('f_name').classList.remove('err');
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){G('f_email').classList.add('err');err=true;}else G('f_email').classList.remove('err');
-  if(!validDOB(dob)){G('f_dob').classList.add('err');err=true;}else G('f_dob').classList.remove('err');
-  if(!inc){G('f_inc').classList.add('err');err=true;}else G('f_inc').classList.remove('err');
+  if(!checkInfo())return;
   const wasSilent=_silentConfirm;_silentConfirm=false;
-  if(err)return;
-  S.u={...S.u,name,email,dob,income:inc};const age=getAge(dob);
-  if(S.u.plan==='protection'){S.q.cover=Math.min(120*inc,1000000);S.q.term=Math.max(10,Math.min(30,65-Math.round(getAge(dob))));}
-  else{S.q.premium=Math.max(100,Math.min(10000,Math.round(inc*0.1)));S.q.term=10;}
-  hidePanel();S.stage='info_collected';S.busy=true;setActive(false);
-  if(!wasSilent)addUser(`Name: ${name} &nbsp;·&nbsp; ${email}<br>${dob} &nbsp;·&nbsp; ${S.u.gender==='male'?'Male':'Female'} &nbsp;·&nbsp; $${inc.toLocaleString('en-US')}/mo &nbsp;·&nbsp; ${S.u.smoker?'Smoker':'Non-smoker'}`);
-  const resp=await callAPI(`Details submitted — Name="${name}", DOB=${dob} (age ${age}), Gender=${S.u.gender}, Income=$${inc}/mo, Smoker=${S.u.smoker?'yes':'no'}, Plan: ${S.u.plan}`);
+  const {name,email,dob,income,gender,smoker,plan}=S.u;
+  const age=getAge(dob);
+  if(plan==='protection'){S.q.cover=Math.min(120*income,1000000);S.q.term=Math.max(10,Math.min(30,65-Math.round(age)));}
+  else{S.q.premium=Math.max(100,Math.min(10000,Math.round(income*0.1)));S.q.term=10;}
+  S.stage='info_collected';S.busy=true;setActive(false);
+  if(!wasSilent)addUser(`Name: ${name} &nbsp;·&nbsp; ${email}<br>${dob} &nbsp;·&nbsp; ${gender==='male'?'Male':'Female'} &nbsp;·&nbsp; $${income.toLocaleString('en-US')}/mo &nbsp;·&nbsp; ${smoker?'Smoker':'Non-smoker'}`);
+  const resp=await callAPI(`Details confirmed — Name="${name}", DOB=${dob} (age ${age}), Gender=${gender}, Income=$${income}/mo, Smoker=${smoker?'yes':'no'}, Plan: ${plan}`);
   if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
 }
 
@@ -889,19 +885,8 @@ async function agreeIll(){
 
 // ── Medical — panel ──
 function renderMedical(){
-  if(G('m_h'))return;
+  if(S.activeCard==='med_card')return;
   S.activeCard='med_card';
-  showPanel(`<div class="pnl">
-    <div class="pnl-hd">Medical details</div>
-    <div class="pnl-row bmir"><input class="fi" id="m_h" type="number" placeholder="Height (cm)" min="100" max="250" oninput="calcBMI()"><input class="fi" id="m_w" type="number" placeholder="Weight (kg)" min="20" max="300" oninput="calcBMI()"><div class="bmib" id="bmi_box">BMI</div></div>
-    <div class="pnl-row"><span class="ml">Alcohol consumption</span><div class="rg"><button class="rb on" onclick="setRb('alc','none',this)">None</button><button class="rb" onclick="setRb('alc','occasional',this)">Occasional</button><button class="rb" onclick="setRb('alc','regular',this)">Regular</button></div></div>
-    <div class="pnl-row"><span class="ml">Chronic condition — diabetes, hypertension, or similar?</span><div class="rg"><button class="rb on" onclick="setRb('cc','no',this)">No</button><button class="rb" onclick="setRb('cc','yes',this)">Yes</button></div></div>
-    <div class="pnl-row"><span class="ml">Hospitalised or had major surgery in the last 5 years?</span><div class="rg"><button class="rb on" onclick="setRb('hosp','no',this)">No</button><button class="rb" onclick="setRb('hosp','yes',this)">Yes</button></div></div>
-    <div class="pnl-row"><span class="ml">Taking any regular medication?</span><div class="rg"><button class="rb on" onclick="setRb('medic','no',this)">No</button><button class="rb" onclick="setRb('medic','yes',this)">Yes</button></div></div>
-    <div class="pnl-row"><span class="ml">Family history of cancer, heart disease, or stroke?</span><div class="rg"><button class="rb on" onclick="setRb('fhist','no',this)">No</button><button class="rb" onclick="setRb('fhist','yes',this)">Yes</button></div></div>
-    <div class="pnl-row"><span class="ml">Hazardous activities — diving, motorsport, or similar?</span><div class="rg"><button class="rb on" onclick="setRb('haz','no',this)">No</button><button class="rb" onclick="setRb('haz','yes',this)">Yes</button></div></div>
-    <button class="pnl-sub" id="med_btn" disabled onclick="submitMed()">Submit medical info ${ic.arrow}</button>
-  </div>`);
 }
 
 function calcBMI(){
@@ -914,12 +899,12 @@ function setRb(key,val,btn){btn.parentElement.querySelectorAll('.rb').forEach(b=
 
 async function submitMed(){
   const wasSilent=_silentConfirm;_silentConfirm=false;
-  const h=G('m_h').value,w=G('m_w').value;
-  if(!h||!w){addBot("Please enter your height and weight before submitting");return;}
-  const mv=S.medVals;
-  hidePanel();S.stage='medical_done';S.busy=true;setActive(false);
-  if(!wasSilent)addUser(`Height: ${h}cm &nbsp;·&nbsp; Weight: ${w}kg &nbsp;·&nbsp; BMI: ${(w/Math.pow(h/100,2)).toFixed(1)}<br>Alcohol: ${mv.alc} &nbsp;·&nbsp; Chronic: ${mv.cc} &nbsp;·&nbsp; Hospitalised: ${mv.hosp}<br>Medication: ${mv.medic} &nbsp;·&nbsp; Family history: ${mv.fhist} &nbsp;·&nbsp; Hazardous: ${mv.haz}`);
-  const summary=`Height:${h}cm, Weight:${w}kg, Alcohol:${mv.alc}, Chronic conditions:${mv.cc}, Hospitalised:${mv.hosp}, Medication:${mv.medic}, Family history:${mv.fhist}, Hazardous activities:${mv.haz}`;
+  const {height:h,weight:w,alc,cc,hosp,medic,fhist,haz}=S.medVals;
+  if(!h||!w){addBot("I still need your height and weight before we can continue");return;}
+  const bmi=(w/Math.pow(h/100,2)).toFixed(1);
+  S.stage='medical_done';S.busy=true;setActive(false);
+  if(!wasSilent)addUser(`Height: ${h}cm &nbsp;·&nbsp; Weight: ${w}kg &nbsp;·&nbsp; BMI: ${bmi}<br>Alcohol: ${alc} &nbsp;·&nbsp; Chronic: ${cc} &nbsp;·&nbsp; Hospitalised: ${hosp}<br>Medication: ${medic} &nbsp;·&nbsp; Family history: ${fhist} &nbsp;·&nbsp; Hazardous: ${haz}`);
+  const summary=`Height:${h}cm, Weight:${w}kg, BMI:${bmi}, Alcohol:${alc}, Chronic conditions:${cc}, Hospitalised:${hosp}, Medication:${medic}, Family history:${fhist}, Hazardous activities:${haz}`;
   const resp=await callAPI(`Medical questionnaire complete — ${summary} — please ask the user to share their passport in the chat for identity verification`);
   if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
 }
