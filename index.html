@@ -326,7 +326,7 @@ function editCard(id,resetStage,force=false){
     hidePanel();
     if(id==='plan_card') renderPlans();
     else if(id==='info_card'){renderInfoForm();setTimeout(()=>{if(S.u.name)prefillInfoCard(S.u);},50);}
-    else if(id==='med_card') renderMedical();
+    else if(id==='med_card'){S.activeCard=null;renderMedical();}
   }
 }
 
@@ -375,7 +375,7 @@ show_investment_quote  optional data:{"premium":0,"term":0,"fund":"aggressive|ba
 
 show_illustration → show a year-by-year policy table; prerequisite: a quote has been accepted
 
-show_medical → activate the medical collection stage AND ask for height and weight in the same message, preceded by a brief honest-answers note — e.g. "Just so you know, honest answers here really matter — any undisclosed condition can affect your coverage or lead to a claim being declined. Nothing here is judged, it just needs to be accurate"; prerequisite: illustration agreed
+show_medical → activate the medical collection stage; the height and weight panel opens automatically — your message should contain only the honest-answers note, e.g. "Just so you know, honest answers here really matter — any undisclosed condition can affect your coverage or lead to a claim being declined. Nothing here is judged, it just needs to be accurate"; prerequisite: illustration agreed
 
 show_signature → show a signature canvas; prerequisites: medical complete AND passport verified
 
@@ -397,20 +397,24 @@ reset_to_plan_selection → re-show plan chips when the user wants to change pla
 
 scroll_to_card → smooth-scroll the active card into view; use when the user wants to review or adjust the card after a conversational exchange
 
+show_dob_input → show a date picker panel for date of birth; emit when asking for DOB — the panel handles input and format, no typing required
+
+show_chips  data:{"options":["option1","option2",...]} → show tappable quick-reply chips in the panel; use whenever you ask a question with 2–4 known answer options — smoker (["Yes, I smoke","No, I don't"]), alcohol (["None","Occasionally","Regularly"]), any yes/no medical question (["Yes","No"]), dependents (["None","1","2","3 or more"]), loans or existing insurance (["None","Yes, I have some"]); always emit alongside your question message, never instead of it
+
 ── COLLECTING INFORMATION ──────────────────────────────────────
 Collect all required information through conversation — never show a form. Check the context above before asking any question; never ask for something already captured.
 
 Personal details (name, email, DOB, income):
-Ask naturally, one or two fields at a time — start with name. When asking for income, always specify that you need the monthly amount in USD. Emit prefill_info as each value is confirmed. Once all 4 required fields AND smoker status are confirmed, show a brief summary of all collected details and invite confirmation — e.g. "Here's what I have: [summary]. Just say confirmed when you're happy and I'll lock those in". Only emit confirm_active_card when the user confirms. Do not auto-submit. If the user gives multiple fields at once, emit prefill_info with all of them, then continue to the next missing field or the smoker question as appropriate. Gender defaults to male — ask only if context suggests otherwise. Smoker status must always be asked explicitly before emitting confirm_active_card, regardless of context. When asking, include a natural disclaimer — e.g. "honest answers here ensure seamless claims down the line". Once the user answers, immediately emit prefill_info with the smoker field — this is required for the form to submit
+Ask naturally, one or two fields at a time — start with name. When asking for income, always specify that you need the monthly amount in USD. When asking for DOB, emit show_dob_input alongside your message — the panel handles the input, do not specify a format. Emit prefill_info as each value is confirmed. Once all 4 required fields AND smoker status are confirmed, show a brief summary of all collected details and invite confirmation — e.g. "Here's what I have: [summary]. Just say confirmed when you're happy and I'll lock those in". Only emit confirm_active_card when the user confirms. Do not auto-submit. If the user gives multiple fields at once, emit prefill_info with all of them, then continue to the next missing field or the smoker question as appropriate. Gender defaults to male — ask only if context suggests otherwise. Smoker status must always be asked explicitly before emitting confirm_active_card, regardless of context. When asking, include a natural disclaimer — e.g. "honest answers here ensure seamless claims down the line". Once the user answers, immediately emit prefill_info with the smoker field — this is required for the form to submit
 
 Medical details:
-Emit show_medical first, then in the same message ask for height and weight. Once you have height and weight, emit prefill_medical with those values and continue asking the remaining questions one at a time: (1) alcohol consumption, (2) any chronic conditions, (3) hospitalisation in the last 5 years, (4) regular medication, (5) family history of cancer, heart disease, or stroke, (6) hazardous activities. All toggle fields default to none/no — if the user skips one, move on. Once all six questions have been asked and answered or skipped, emit a final prefill_medical containing ALL 8 fields — height, weight, alc, cc, hosp, medic, fhist, haz — with their confirmed values or safe defaults. This single batch signals completion and triggers automatic submission. Do not emit confirm_active_card for medical; the complete prefill_medical is the trigger
+Emit show_medical first — the height and weight panel opens automatically, so do not ask for height and weight conversationally. Your message should only contain the honest-answers note. Once you have height and weight, emit prefill_medical with those values and continue asking the remaining questions one at a time: (1) alcohol consumption, (2) any chronic conditions, (3) hospitalisation in the last 5 years, (4) regular medication, (5) family history of cancer, heart disease, or stroke, (6) hazardous activities. All toggle fields default to none/no — if the user skips one, move on. Once all six questions have been asked and answered or skipped, emit a final prefill_medical containing ALL 8 fields — height, weight, alc, cc, hosp, medic, fhist, haz — with their confirmed values or safe defaults. This single batch signals completion and triggers automatic submission. Do not emit confirm_active_card for medical; the complete prefill_medical is the trigger
 
 ── NEEDS ASSESSMENT ────────────────────────────────────────────
 Run this once, immediately after personal details are confirmed (stage info_collected). Ask the three questions one at a time across separate turns — never bundle them into one message:
-Turn 1: ask about any outstanding mortgage or total loans
+Turn 1: ask about any outstanding mortgage or total loans — if they have any, ask for the total amount in USD
 Turn 2 (once answered or skipped): ask about number of financial dependents
-Turn 3 (once answered or skipped): ask about any existing personal life insurance — sum assured and years remaining
+Turn 3 (once answered or skipped): ask about any existing personal life insurance — if they have any, ask for the sum assured in USD and years remaining
 After all three are answered or skipped, compute the adjusted cover and emit the quote
 
 Employer or group coverage is NOT personal coverage — flag this clearly if mentioned; note it is tied to employment, not portable, and typically covers only 2–4× salary
@@ -579,7 +583,48 @@ async function executeAction(action){
     case 'passport_verified':     await handlePassportVerified();break;
     case 'reset_to_plan_selection': editCard('plan_card','start',true);break;
     case 'scroll_to_card': {const c=G(S.activeCard);if(c)c.scrollIntoView({behavior:'smooth',block:'nearest'});}break;
+    case 'show_chips': handleShowChips(action.data);break;
+    case 'show_dob_input': handleShowDobInput();break;
   }
+}
+
+function handleShowDobInput(){
+  const now=new Date();
+  const maxD=new Date(now.getFullYear()-18,now.getMonth(),now.getDate()).toISOString().split('T')[0];
+  const minD=new Date(now.getFullYear()-70,now.getMonth(),now.getDate()).toISOString().split('T')[0];
+  showPanel(`<div class="pnl">
+    <div class="pnl-hd">Date of birth</div>
+    <input class="fi" id="dob_inp" type="date" min="${minD}" max="${maxD}" onchange="G('dob_btn').disabled=!this.value">
+    <button class="pnl-sub" id="dob_btn" disabled onclick="submitDob()">Confirm ${ic.arrow}</button>
+  </div>`);
+}
+
+async function submitDob(){
+  const val=G('dob_inp').value;if(!val)return;
+  const [y,m,d]=val.split('-');
+  const dob=`${d}/${m}/${y}`;
+  hidePanel();addUser(dob);
+  S.busy=true;setActive(false);
+  const resp=await callAPI(dob);
+  if(resp.message&&resp.message.trim())addBot(resp.message);
+  await executeAction(resp.action);
+  S.busy=false;setActive(true);
+}
+
+function handleShowChips(data){
+  if(!data?.options?.length)return;
+  showPanel(`<div class="chips">${data.options.map(o=>`<button class="chip" onclick="pickChip(${JSON.stringify(o)})">${o}</button>`).join('')}</div>`);
+}
+
+async function pickChip(val){
+  if(S.busy)return;
+  hidePanel();
+  addUser(val);
+  S.busy=true;setActive(false);
+  const resp=await callAPI(val);
+  if(resp.message&&resp.message.trim())addBot(resp.message);
+  await executeAction(resp.action);
+  S.busy=false;setActive(true);
 }
 
 function handleSelectPlan(data){
@@ -897,6 +942,37 @@ async function agreeIll(){
 function renderMedical(){
   if(S.activeCard==='med_card')return;
   S.activeCard='med_card';
+  handleShowHeightWeightInput();
+}
+
+function handleShowHeightWeightInput(){
+  showPanel(`<div class="pnl">
+    <div class="pnl-hd">Height & weight</div>
+    <div class="flds">
+      <div class="bmir"><input class="fi" id="hw_h" type="number" placeholder="Height" min="100" max="250" oninput="previewBMI()"><div class="bmib">cm</div></div>
+      <div class="bmir"><input class="fi" id="hw_w" type="number" placeholder="Weight" min="30" max="300" oninput="previewBMI()"><div class="bmib">kg</div></div>
+    </div>
+    <div id="bmi_prev" style="text-align:center;font-size:12px;color:var(--t3);margin-top:8px;min-height:18px"></div>
+    <button class="pnl-sub" id="hw_btn" disabled onclick="submitHW()">Confirm ${ic.arrow}</button>
+  </div>`);
+}
+
+function previewBMI(){
+  const h=Number(G('hw_h')?.value||0),w=Number(G('hw_w')?.value||0);
+  G('hw_btn').disabled=!(h>=100&&h<=250&&w>=30&&w<=300);
+  if(h>0&&w>0){const bmi=(w/Math.pow(h/100,2)).toFixed(1);const el=G('bmi_prev');el.textContent=`BMI ${bmi}`;el.style.color=(bmi<18.5||bmi>30)?'var(--gold)':'var(--a)';}
+}
+
+async function submitHW(){
+  const h=Number(G('hw_h').value),w=Number(G('hw_w').value);if(!h||!w)return;
+  const bmi=(w/Math.pow(h/100,2)).toFixed(1);
+  hidePanel();
+  addUser(`Height: ${h}cm &nbsp;·&nbsp; Weight: ${w}kg &nbsp;·&nbsp; BMI: ${bmi}`);
+  S.busy=true;setActive(false);
+  const resp=await callAPI(`Height: ${h}cm, Weight: ${w}kg`);
+  if(resp.message&&resp.message.trim())addBot(resp.message);
+  await executeAction(resp.action);
+  S.busy=false;setActive(true);
 }
 
 async function submitMed(){
