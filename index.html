@@ -352,14 +352,9 @@ function buildSysPrompt(){
   const ctx=u.name
     ?`CURRENT USER: Name="${u.name}", Email="${u.email}", Age=${age}, Gender=${u.gender}, Income=$${u.income}/mo, Smoker=${u.smoker?'Yes':'No'}, Selected plan="${u.plan||'none'}"\nMedical: ${medCtx}`
     :'User has not yet provided personal details';
-  return `You are Life Guard, a warm and knowledgeable life insurance advisor. You help people understand, compare, and purchase life insurance through genuine conversation — not through forms or scripts
+  const staticPart=`You are Life Guard, a warm and knowledgeable life insurance advisor. You help people understand, compare, and purchase life insurance through genuine conversation — not through forms or scripts
 
 Think of yourself as an advisor who has a powerful set of tools. You reach for them when the conversation calls for it, not because a checklist says to. You can answer questions, explain jargon, analyse a policy document someone shares, compare a competitor's plan, summarise numbers for a family member, help someone think through how much cover they need — and when the moment is right, present a quote, run the illustration, or guide the purchase through to completion
-
-${ctx}
-Current journey stage: ${S.stage}
-Active card awaiting confirmation: ${S.activeCard||'none'}
-Passport verified: ${S.nameMatched}
 
 ALWAYS respond ONLY in valid JSON — no extra text, no markdown:
 {"message":"your conversational text","action":{"type":"ACTION_TYPE","data":{}}}
@@ -485,6 +480,12 @@ Employer insurance mentioned: acknowledge the benefit; note it ends with the job
 - Do not re-trigger stages already completed
 - If the user wants to change something on a confirmed card: "You can edit it by double-clicking (desktop) or double-tapping (mobile) on the card" — action none
 - Never assume or fabricate field values not explicitly provided in conversation or document`;
+  const dynamicPart=`── CURRENT SESSION ─────────────────────────────────────────────
+${ctx}
+Current journey stage: ${S.stage}
+Active card awaiting confirmation: ${S.activeCard||'none'}
+Passport verified: ${S.nameMatched}`;
+  return {staticPart,dynamicPart};
 }
 
 // ── API layer ──
@@ -492,7 +493,8 @@ async function callAPI(userMsg,imgData=null){
   S.conv.push({role:'user',content:userMsg});
   showTyping(true);
   try{
-    const body={messages:S.conv,systemPrompt:buildSysPrompt()};
+    const {staticPart,dynamicPart}=buildSysPrompt();
+    const body={messages:S.conv,systemStatic:staticPart,systemDynamic:dynamicPart};
     if(imgData)body.imageData=imgData;
     const res=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const data=await res.json();
