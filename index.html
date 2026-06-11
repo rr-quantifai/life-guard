@@ -17,6 +17,8 @@
 html{height:100%;-webkit-tap-highlight-color:transparent}
 body{height:100%;background:var(--bg);color:var(--tx);font-family:'Inter',ui-sans-serif,sans-serif;font-size:14px;line-height:1.5;overflow:hidden}
 #app{display:flex;flex-direction:column;height:100dvh;max-width:600px;margin:0 auto}
+#progw{height:3px;background:var(--s2);flex-shrink:0}
+#prog{height:100%;width:0%;background:var(--a);border-radius:0 2px 2px 0;transition:width .5s ease}
 #msgs{flex:1;overflow-y:auto;padding:10px 14px 0;display:flex;flex-direction:column;gap:5px}
 #msgs::-webkit-scrollbar{width:3px}
 #msgs::-webkit-scrollbar-thumb{background:var(--s4);border-radius:2px}
@@ -63,11 +65,11 @@ body{height:100%;background:var(--bg);color:var(--tx);font-family:'Inter',ui-san
 #snd:disabled{background:var(--s4);cursor:default}
 #snd svg{width:14px;height:14px}
 .card{background:var(--s1);border:1px solid var(--bd);border-radius:14px;padding:17px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
-.card.done{opacity:.35;cursor:pointer;user-select:none;touch-action:manipulation}
+.card.done{opacity:.8;cursor:pointer;user-select:none;touch-action:manipulation}
 .card.done *{pointer-events:none}
-.card-overlay{position:absolute;inset:0;border-radius:14px;display:flex;align-items:center;justify-content:center;background:rgba(245,247,251,.5);pointer-events:none}
-.card-overlay-pill{display:flex;align-items:center;gap:7px;background:#fff;border:1.5px solid #D5DAF0;border-radius:20px;padding:9px 16px}
-.card-overlay-txt{font-size:12px;font-weight:600;color:#1C2237}
+.card-overlay{position:absolute;top:10px;right:10px;pointer-events:none}
+.card-overlay-pill{display:flex;align-items:center;gap:5px;background:#fff;border:1px solid #D5DAF0;border-radius:14px;padding:5px 10px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.card-overlay-txt{font-size:10px;font-weight:600;color:#4A5272}
 .ctag{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ad);margin-bottom:13px;display:flex;align-items:center;gap:6px}
 .flds{display:flex;flex-direction:column;gap:9px}
 .fi{width:100%;background:var(--s2);border:1.5px solid var(--bd);border-radius:9px;padding:11px;color:var(--tx);font:inherit;outline:none;transition:border-color .2s;-webkit-appearance:none;appearance:none}
@@ -90,6 +92,12 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 .qs{font-size:10px;color:var(--t3);margin-top:1px}
 .feat{background:var(--aa);border:1px solid rgba(11,175,136,.25);border-radius:9px;padding:11px;display:flex;gap:9px;align-items:flex-start;font-size:11px;color:var(--ad);line-height:1.6}
 .feat svg{width:14px;height:14px;flex-shrink:0;margin-top:2px}
+.incl{margin-top:2px}
+.incl summary{font-size:12px;font-weight:600;color:var(--ad);cursor:pointer;padding:6px 0;list-style:none;display:flex;align-items:center;gap:6px;user-select:none}
+.incl summary::-webkit-details-marker{display:none}
+.incl summary::before{content:'+';font-weight:700}
+.incl[open] summary::before{content:'\2013'}
+.incl .feat:first-of-type{margin-top:4px}
 .fnds{display:flex;gap:7px;margin:9px 0}
 .fnd{flex:1;padding:9px;background:var(--s2);border:1.5px solid var(--bd);border-radius:9px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all .2s}
 .fnd.sel{border-color:var(--a);background:var(--aa)}
@@ -144,6 +152,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 </head>
 <body>
 <div id="app">
+  <div id="progw"><div id="prog"></div></div>
   <div id="msgs"></div>
   <div id="typing">
     <div class="av"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
@@ -207,11 +216,16 @@ const S = {
 };
 let _attachFile = null;
 
+const STAGE_PCT={start:0,plan_selected:10,info_collected:25,quote_accepted:40,illustration_agreed:50,medical_done:62,doc_uploaded:72,signed:82,paid:90,nominee_done:96,completed:100};
+let _stageVal=S.stage;
+Object.defineProperty(S,'stage',{get:()=>_stageVal,set:v=>{_stageVal=v;const b=G('prog');if(b)b.style.width=(STAGE_PCT[v]??0)+'%';}});
+
 const G = id => document.getElementById(id);
 const msgs=G('msgs'),inp=G('inp'),snd=G('snd');
 function showPanel(html){ const p=G('panel'); p.innerHTML=html; p.style.display='block'; msgs.style.paddingBottom='10px'; scroll(); }
 function hidePanel(){ const p=G('panel'); p.style.display='none'; p.innerHTML=''; msgs.style.paddingBottom='0'; }
 
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt = n => '$'+Math.round(n).toLocaleString('en-US');
 const delay = ms => new Promise(r=>setTimeout(r,ms));
 
@@ -285,6 +299,7 @@ function lockCard(id){
 
 function editCard(id,resetStage,force=false){
   if(S.busy&&!force)return;
+  if(!force&&msgs.querySelector(`[data-sentinel="${id}"]`)&&!confirm('Editing this step will reset everything that came after it. Continue?'))return;
   if(id==='plan_card'){
     S.u={name:'',email:'',dob:'',gender:'male',income:0,smoker:false,smokerConfirmed:false,plan:''};
     S.nameMatched=false;
@@ -506,7 +521,12 @@ async function callAPI(userMsg,imgData=null){
     const text=data.content?.[0]?.text||'';
     S.conv.push({role:'assistant',content:text});
     return parseResp(text);
-  }catch(e){S.conv.pop();return{message:"I'm having a little trouble right now — please try again in a moment",action:{type:'none'}};}
+  }catch(e){
+    S.conv.pop();
+    window._lastFailed={msg:userMsg,img:imgData};
+    showPanel(`<div class="chips"><button class="chip" onclick="retryLast()">&#8635; Retry</button></div>`);
+    return{message:"I'm having a little trouble connecting — tap Retry below and we'll pick up exactly where we left off",action:{type:'none'}};
+  }
   finally{showTyping(false);}
 }
 
@@ -520,12 +540,22 @@ function parseResp(text){
   return parsed;
 }
 
+async function retryLast(){
+  if(S.busy||!window._lastFailed)return;
+  const {msg,img}=window._lastFailed;window._lastFailed=null;hidePanel();
+  S.busy=true;setActive(false);
+  const resp=await callAPI(msg,img);
+  if(resp.message&&resp.message.trim())addBot(resp.message);
+  await executeAction(resp.action);
+  S.busy=false;setActive(true);
+}
+
 // ── Chat rendering ──
 function showTyping(show){G('typing').style.display=show?'flex':'none';scroll();}
 function scroll(){requestAnimationFrame(()=>msgs.scrollTop=msgs.scrollHeight);}
 
 function addBot(text){
-  const clean=text
+  const clean=esc(text)
     .replace(/\*\*(.*?)\*\*/g,'$1')
     .replace(/__(.*?)__/g,'$1')
     .replace(/\*(.*?)\*/g,'$1')
@@ -690,7 +720,7 @@ function validateEmailInput(el){
 async function submitEmail(){
   const val=G('email_inp').value.trim();
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val))return;
-  hidePanel();addUser(val);
+  hidePanel();addUser(esc(val));
   S.busy=true;setActive(false);
   const resp=await callAPI(val);
   if(resp.message&&resp.message.trim())addBot(resp.message);
@@ -700,13 +730,13 @@ async function submitEmail(){
 
 function handleShowChips(data){
   if(!data?.options?.length)return;
-  showPanel(`<div class="chips">${data.options.map(o=>{const c=String(o).trim().length===1;return`<button class="chip${c?' circle':''}" onclick="pickChip(${JSON.stringify(o).replace(/"/g,'&quot;')})">${o}</button>`;}).join('')}</div>`);
+  showPanel(`<div class="chips">${data.options.map(raw=>{const o=String(raw).replace(/[<>]/g,'');const c=o.trim().length===1;return`<button class="chip${c?' circle':''}" onclick="pickChip(${JSON.stringify(o).replace(/"/g,'&quot;')})">${esc(o)}</button>`;}).join('')}</div>`);
 }
 
 async function pickChip(val){
   if(S.busy)return;
   hidePanel();
-  addUser(val);
+  addUser(esc(val));
   S.busy=true;setActive(false);
   const resp=await callAPI(val);
   if(resp.message&&resp.message.trim())addBot(resp.message);
@@ -809,8 +839,8 @@ async function sendUserMsg(){
   if(!text&&!hasFile||S.busy)return;
   S.busy=true;setActive(false);
   const bubbleHtml=hasFile
-    ?`<span style="display:flex;align-items:center;gap:5px;font-size:12px;opacity:.8;margin-bottom:${text?'5px':'0'}">${ic.doc} ${_attachFile.name}</span>${text}`
-    :text;
+    ?`<span style="display:flex;align-items:center;gap:5px;font-size:12px;opacity:.8;margin-bottom:${text?'5px':'0'}">${ic.doc} ${esc(_attachFile.name)}</span>${esc(text)}`
+    :esc(text);
   addUser(bubbleHtml);
   inp.value='';resizeInp();
   let resp;
@@ -872,7 +902,7 @@ async function submitInfo(){
   if(plan==='protection'){S.q.cover=Math.min(120*income,1000000);S.q.term=Math.max(10,Math.min(30,65-Math.round(age)));}
   else{S.q.premium=Math.max(100,Math.min(10000,Math.round(income*0.1)));S.q.term=10;}
   S.stage='info_collected';S.busy=true;setActive(false);
-  if(!wasSilent)addUser(`Name: ${name} &nbsp;·&nbsp; ${email}<br>${dob} &nbsp;·&nbsp; ${gender==='male'?'Male':'Female'} &nbsp;·&nbsp; $${income.toLocaleString('en-US')}/mo &nbsp;·&nbsp; ${smoker?'Smoker':'Non-smoker'}`);
+  if(!wasSilent)addUser(`Name: ${esc(name)} &nbsp;·&nbsp; ${esc(email)}<br>${dob} &nbsp;·&nbsp; ${gender==='male'?'Male':'Female'} &nbsp;·&nbsp; $${income.toLocaleString('en-US')}/mo &nbsp;·&nbsp; ${smoker?'Smoker':'Non-smoker'}`);
   const resp=await callAPI(`Details confirmed — Name="${name}", DOB=${dob} (age ${age}), Gender=${gender}, Income=$${income}/mo, Smoker=${smoker?'yes':'no'}, Plan: ${plan}`);
   if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
 }
@@ -890,9 +920,11 @@ function renderProtQuote(){
     <div class="qrow"><div><div class="ql">Monthly premium</div><div class="qv" id="pc_mp">${fmt(mp)}</div><div class="qs">per month</div></div><div style="text-align:right"><div class="ql">Total payment</div><div class="qv" id="pc_tp">${fmt(mp*term*12)}</div><div class="qs" id="pc_ts">over ${term} years</div></div></div>
     <div class="qrow"><div><div class="ql">Maturity amount</div><div class="qv">—</div><div class="qs">This plan has no maturity payout</div></div></div>
     <div class="qdiv"></div>
-    <div class="feat">${ic.check} We continue paying your premiums for the entirety of the policy term in case you are diagnosed with a terminal illness, become disabled, or in the event of your death (we didn't want to mention this, but such is the nature of this conversation)</div>
-    <div class="feat" style="margin-top:8px">${ic.check} 15-day free look — not happy after purchase? Cancel within 15 days for a full refund, no questions asked</div>
-    <div class="feat" style="margin-top:8px">${ic.check} Hassle-free claims — your nominee simply emails <strong>help@life-guard.com</strong> with required documents; all claims settled within 24 working hours of receipt</div>
+    <details class="incl"><summary>What's included</summary>
+      <div class="feat">${ic.check} Premium waiver — if you're diagnosed with a terminal illness or become disabled, we take over your remaining premiums and your cover continues uninterrupted</div>
+      <div class="feat" style="margin-top:8px">${ic.check} 15-day free look — not happy after purchase? Cancel within 15 days for a full refund, no questions asked</div>
+      <div class="feat" style="margin-top:8px">${ic.check} Hassle-free claims — your nominee simply emails <strong>help@life-guard.com</strong>; every claim is acknowledged within 24 working hours and personally guided through to settlement</div>
+    </details>
     <button class="btn" onclick="acceptProtQ()">This looks good, proceed ${ic.arrow}</button>
   </div>`);
 }
@@ -925,9 +957,11 @@ function renderSavQuote(){
     <div class="qrow"><div><div class="ql">Life cover</div><div class="qv" id="sv_cv">${fmt(cover)}</div><div class="qs">terminal illness, disability, or death</div></div></div>
     <div class="qrow"><div><div class="ql">Guaranteed maturity</div><div class="qv" id="sv_mv">${fmt(mat)}</div><div class="qs">at end of term</div></div><div style="text-align:right"><div class="ql">Total paid</div><div class="qv" id="sv_tp">${fmt(prem*term*12)}</div><div class="qs" id="sv_ts">over ${term} years</div></div></div>
     <div class="qdiv"></div>
-    <div class="feat">${ic.check} We continue paying your premiums for the entirety of the policy term in case you are diagnosed with a terminal illness, become disabled, or in the event of your death (we didn't want to mention this, but such is the nature of this conversation)</div>
-    <div class="feat" style="margin-top:8px">${ic.check} 15-day free look — not happy after purchase? Cancel within 15 days for a full refund, no questions asked</div>
-    <div class="feat" style="margin-top:8px">${ic.check} Hassle-free claims — your nominee simply emails <strong>help@life-guard.com</strong> with required documents; all claims settled within 24 working hours of receipt</div>
+    <details class="incl"><summary>What's included</summary>
+      <div class="feat">${ic.check} Premium waiver — if you're diagnosed with a terminal illness or become disabled, we take over your remaining premiums and your cover continues uninterrupted</div>
+      <div class="feat" style="margin-top:8px">${ic.check} 15-day free look — not happy after purchase? Cancel within 15 days for a full refund, no questions asked</div>
+      <div class="feat" style="margin-top:8px">${ic.check} Hassle-free claims — your nominee simply emails <strong>help@life-guard.com</strong>; every claim is acknowledged within 24 working hours and personally guided through to settlement</div>
+    </details>
     <button class="btn" onclick="acceptSavQ()">This looks good, proceed ${ic.arrow}</button>
   </div>`);
 }
@@ -965,10 +999,12 @@ function renderInvQuote(){
     <div class="qrow"><div><div class="ql">Life cover</div><div class="qv" id="iv_cv">${fmt(cover)}</div></div><div style="text-align:right"><div class="ql">Projected maturity</div><div class="qv" id="iv_mv">${fmt(mat)}</div><div class="qs" id="iv_ms">after ${term} yrs · ${FUNDS[fund].label}</div></div></div>
     <div class="qrow"><div><div class="ql">Total premiums</div><div class="qv" id="iv_tp">${fmt(prem*term*12)}</div></div></div>
     <div class="qdiv"></div>
-    <div class="feat" style="margin-bottom:10px">${ic.check} We continue paying your premiums for the entirety of the policy term in case you are diagnosed with a terminal illness, become disabled, or in the event of your death (we didn't want to mention this, but such is the nature of this conversation)</div>
     <div class="warn">${ic.warn} Past returns are not indicative of future gains — please invest as per your risk appetite</div>
-    <div class="feat" style="margin-top:8px">${ic.check} 15-day free look — not happy after purchase? Cancel within 15 days for a full refund, no questions asked</div>
-    <div class="feat" style="margin-top:8px">${ic.check} Hassle-free claims — your nominee simply emails <strong>help@life-guard.com</strong> with required documents; all claims settled within 24 working hours of receipt</div>
+    <details class="incl"><summary>What's included</summary>
+      <div class="feat">${ic.check} Premium waiver — if you're diagnosed with a terminal illness or become disabled, we take over your remaining premiums and your cover continues uninterrupted</div>
+      <div class="feat" style="margin-top:8px">${ic.check} 15-day free look — not happy after purchase? Cancel within 15 days for a full refund, no questions asked</div>
+      <div class="feat" style="margin-top:8px">${ic.check} Hassle-free claims — your nominee simply emails <strong>help@life-guard.com</strong>; every claim is acknowledged within 24 working hours and personally guided through to settlement</div>
+    </details>
     <button class="btn" onclick="acceptInvQ()">This looks good, proceed ${ic.arrow}</button>
   </div>`);
 }
@@ -1002,6 +1038,7 @@ function renderIllustration(){
   addComp(`<div class="card" id="ill_card">
     <div class="ctag">Policy illustration</div>
     <div class="ilw"><table class="ilt"><thead><tr>${hdr}</tr></thead><tbody>${tBody}</tbody><tfoot>${totRow}</tfoot></table></div>
+    <p style="font-size:10px;color:var(--t3);margin-top:8px;line-height:1.5">Figures shown are illustrative only and not a guarantee of future value. Actual values may vary.</p>
     <label class="decl"><input type="checkbox" id="ill_chk" onchange="G('ill_btn').disabled=!this.checked"> I hereby confirm that I have fully read and understood the policy terms, conditions, and the illustration above</label>
     <button class="btn" id="ill_btn" disabled onclick="agreeIll()">I agree, proceed ${ic.arrow}</button>
   </div>`);
@@ -1028,6 +1065,7 @@ function handleShowHeightWeightInput(){
       <div class="bmir"><input class="fi" id="hw_h" type="number" placeholder="Height" min="100" max="250" oninput="previewBMI()"><div class="bmib">cm</div></div>
       <div class="bmir"><input class="fi" id="hw_w" type="number" placeholder="Weight" min="30" max="300" oninput="previewBMI()"><div class="bmib">kg</div></div>
     </div>
+    <div class="phi" style="margin-top:2px;margin-bottom:8px">${ic.lock} Confidential — used only for underwriting your policy</div>
     <button class="pnl-sub" id="hw_btn" disabled onclick="submitHW()">Confirm ${ic.arrow}</button>
   </div>`);
 }
@@ -1057,7 +1095,7 @@ async function submitMed(){
   S.stage='medical_done';S.busy=true;setActive(false);
   if(!wasSilent)addUser(`Height: ${h}cm &nbsp;·&nbsp; Weight: ${w}kg &nbsp;·&nbsp; BMI: ${bmi}<br>Alcohol: ${alc} &nbsp;·&nbsp; Chronic: ${cc} &nbsp;·&nbsp; Hospitalised: ${hosp}<br>Medication: ${medic} &nbsp;·&nbsp; Family history: ${fhist} &nbsp;·&nbsp; Hazardous: ${haz}`);
   const summary=`Height:${h}cm, Weight:${w}kg, BMI:${bmi}, Alcohol:${alc}, Chronic conditions:${cc}, Hospitalised:${hosp}, Medication:${medic}, Family history:${fhist}, Hazardous activities:${haz}`;
-  const resp=await callAPI(`Medical questionnaire complete — ${summary} — please ask the user to share their passport in the chat for identity verification`);
+  const resp=await callAPI(`Medical questionnaire complete — ${summary} — please ask the user to share their passport using the paperclip icon, and reassure them in the same message that it is encrypted in transit, used only to verify their identity, and never stored`);
   if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
 }
 
@@ -1069,7 +1107,8 @@ function renderSignature(){
     <div class="ctag">Digital signature</div>
     <p style="font-size:12px;color:var(--t2);margin-bottom:12px;line-height:1.6">I declare that all information provided in this application is true, accurate, and complete to the best of my knowledge. I understand that any misrepresentation, non-disclosure, or inaccuracy may result in additional premium loading, cancellation of the policy, or rejection of claims</p>
     <canvas id="sigc"></canvas>
-    <div class="sgh">Draw your signature above</div>
+    <div class="sgh">Draw your signature above — or type it below</div>
+    <input class="fi" id="sig_typed" type="text" placeholder="Type your full name to sign" style="margin-top:8px" oninput="typeSig(this.value)">
     <button class="btn" onclick="submitSig()">Submit signature ${ic.arrow}</button>
     <button class="gbtn" onclick="clearSig()">Clear</button>
   </div>`);
@@ -1088,7 +1127,19 @@ function initSigPad(){
   window._sigCtx=ctx;window._sigCanvas=canvas;
 }
 
-function clearSig(){const c=window._sigCanvas;if(c)window._sigCtx.clearRect(0,0,c.width,c.height);}
+function clearSig(){const c=window._sigCanvas;if(c)window._sigCtx.clearRect(0,0,c.width,c.height);const t=G('sig_typed');if(t)t.value='';}
+
+function typeSig(v){
+  const c=window._sigCanvas,ctx=window._sigCtx;if(!c||!ctx)return;
+  ctx.clearRect(0,0,c.width,c.height);
+  if(!v.trim())return;
+  ctx.save();
+  ctx.font='italic 32px "Segoe Script","Brush Script MT",cursive';
+  ctx.fillStyle='#0BAF88';
+  ctx.textBaseline='middle';
+  ctx.fillText(v.trim(),16,72);
+  ctx.restore();
+}
 
 async function submitSig(){
   const c=window._sigCanvas;if(!c)return;
@@ -1119,7 +1170,7 @@ function renderPayment(){
       <input class="fi" id="py_card" type="tel" placeholder="Card number" maxlength="19" oninput="fmtCard(this)">
       <div class="pay2"><input class="fi" id="py_exp" type="tel" placeholder="MM / YY" maxlength="7" oninput="fmtExp(this)"><input class="fi" id="py_cvv" type="tel" placeholder="CVV" maxlength="4" style="flex:0 0 80px"></div>
     </div>
-    <div class="phi">${ic.lock} Secure payment</div>
+    <div class="phi">${ic.lock} Secure payment &nbsp;·&nbsp; Demo mode — use 4242 4242 4242 4242</div>
     <button class="pnl-sub" id="pay_btn" onclick="submitPay('${fmt(amount)}')">Pay ${fmt(amount)} ${ic.arrow}</button>
   </div>`);
 }
@@ -1239,7 +1290,7 @@ async function submitNominee(){
   S.nominees=nominees;
   hidePanel();S.stage='nominee_done';
   S.busy=true;setActive(false);
-  addUser('Nominees: '+nominees.map(n=>`${n.name} (${n.relationship}) ${n.share}%`).join(' · '));
+  addUser('Nominees: '+nominees.map(n=>`${esc(n.name)} (${esc(n.relationship)}) ${n.share}%`).join(' · '));
   await delay(400);
   renderConfirmation();
   S.busy=false;setActive(true);
@@ -1253,7 +1304,7 @@ function renderConfirmation(){
     ?'\n\nYour '+(S.nominees.length===1?'beneficiary':'beneficiaries')+': '+S.nominees.map(n=>`${n.name} (${n.relationship}) — ${n.share}%`).join(' · ')
     :'';
   const ref='LG-'+Date.now().toString(36).toUpperCase().slice(-6);
-addBot(`You're all set, ${first}! 🎉 Your reference number is <strong>${ref}</strong>\n\nYou've done the second most important thing by purchasing a life insurance policy — what comes first is staying healthy so your family and loved ones never have to use it${nomList}\n\nYou'll receive your policy copy within the next 24 hours at ${S.u.email}\n\nYou can also reach us at help@life-guard.com — please use the same email address as on your application so we can identify you faster`);
+addBot(`You're all set, ${first}! 🎉 Your reference number is ${ref}\n\nYou've done the second most important thing by purchasing a life insurance policy — what comes first is staying healthy so your family and loved ones never have to use it${nomList}\n\nYou'll receive your policy copy within the next 24 hours at ${S.u.email}\n\nYou can also reach us at help@life-guard.com — please use the same email address as on your application so we can identify you faster`);
   S.stage='completed';inp.placeholder='Your application is being processed — do you have any other questions?';
 }
 
