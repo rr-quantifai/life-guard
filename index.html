@@ -41,7 +41,7 @@ body{height:100%;background:var(--bg);color:var(--tx);font-family:'Inter',ui-san
 #panel::-webkit-scrollbar-thumb{background:var(--s4);border-radius:2px}
 .chips{display:flex;flex-wrap:wrap;gap:8px;padding:12px 14px}
 .chip{padding:9px 15px;background:var(--s2);border:1.5px solid var(--bd);border-radius:20px;font:500 13px/1 'Inter',ui-sans-serif,sans-serif;color:var(--t2);cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:7px}
-.chip.circle{width:36px;height:36px;padding:0;border-radius:50%}
+.chip.circle{width:36px;height:36px;padding:0;border-radius:50%;justify-content:center}
 .chip:hover{border-color:var(--a);color:var(--ad);background:var(--aa)}
 .pnl{padding:14px 14px 4px}
 .pnl-sub{width:100%;padding:12px;background:var(--a);color:#fff;border:none;border-radius:11px;font:700 13px 'Inter',ui-sans-serif,sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:background .2s;margin-top:10px;margin-bottom:10px}
@@ -308,6 +308,10 @@ function editCard(id,resetStage,force=false){
     S.medExplicit=new Set();
     S.nominees=[];
   }
+  if(['info_collected','quote_accepted'].includes(resetStage)){
+    S.medVals={alc:'none',cc:'no',hosp:'no',medic:'no',fhist:'no',haz:'no',height:0,weight:0};
+    S.medExplicit=new Set();
+  }
   const sentinel=msgs.querySelector(`[data-sentinel="${id}"]`);
   if(sentinel){
     const cl=parseInt(sentinel.dataset.convLen);
@@ -403,13 +407,15 @@ show_amount_input → show a USD amount input with automatic number formatting; 
 
 show_email_input → show an email input with live format validation; emit when asking for email address
 
-show_chips  data:{"options":["option1","option2",...]} → show tappable quick-reply chips in the panel; use whenever you ask a question with 2–4 known answer options — smoker (["Yes, I smoke","No, I don't"]), alcohol (["None","Occasionally","Regularly"]), any yes/no medical question (["Yes","No"]), dependents (["None","1","2","3 or more"]), loans (["Yes, I have some","No, I don't"]), existing insurance (["Yes, I have a policy","No, I don't"]); always emit alongside your question message, never instead of it; since the chips define the answer choices, never phrase the message as open-ended — avoid "how would you describe / rate / tell me about X"; use a short direct question instead — e.g. "Do you drink alcohol?" not "How would you describe your alcohol consumption?"
+show_upload_prompt → show a prominent upload button in the panel that opens the device file picker; emit alongside ANY message asking the user to share a document — passport or other ID, a replacement ID after a name mismatch, an existing policy for comparison; never direct the user to the paperclip icon when you can emit this instead
+
+show_chips  data:{"options":["option1","option2",...]} → show tappable quick-reply chips in the panel; use whenever you ask a question with 2–4 known answer options — smoker (["Yes, I smoke","No, I don't"]), alcohol (["None","Occasionally","Regularly"]), any yes/no medical question (["Yes","No"]), dependents (["None","1","2","3 or more"]), loans (["Yes, I have some","No, I don't"]), existing insurance (["Yes, I have a policy","No, I don't"]), the personal-details confirmation summary (["Confirmed"]); always emit alongside your question message, never instead of it; since the chips define the answer choices, never phrase the message as open-ended — avoid "how would you describe / rate / tell me about X"; use a short direct question instead — e.g. "Do you drink alcohol?" not "How would you describe your alcohol consumption?"; beyond questions, also emit chips at every confirmation or decision point you create — summaries, warnings, proceed-or-adjust moments — so the user can always answer with a single tap; only leave the user to type when the expected answer is genuinely free-form (a name, an amount, a correction, a description)
 
 ── COLLECTING INFORMATION ──────────────────────────────────────
 Collect all required information through conversation — never show a form. Check the context above before asking any question; never ask for something already captured.
 
 Personal details (name, email, DOB, income):
-Ask naturally, one or two fields at a time — start with name. When asking for income, emit show_income_input alongside your message — do not mention USD, the panel handles the currency and format. When asking for DOB, emit show_dob_input alongside your message — the panel handles the input, do not specify a format. When asking for email, emit show_email_input alongside your message. Emit prefill_info as each value is confirmed. Once all 5 required fields (name, email, DOB, gender, income) AND smoker status are confirmed, show a brief summary of all collected details and invite confirmation — e.g. "Here's what I have: [summary]. Just say confirmed when you're happy and I'll lock those in". Only emit confirm_active_card when the user confirms. Do not auto-submit. If the user gives multiple fields at once, emit prefill_info with all of them, then continue to the next missing field or the smoker question as appropriate. Gender must be collected — if it can be confidently inferred from conversation (e.g. "my wife", "she wants a policy", pronouns, possessives), emit prefill_info with the inferred value and skip asking; otherwise ask after DOB using show_chips with ["Male","Female"] and emit prefill_info immediately after. Smoker status must be confirmed before emitting confirm_active_card. If clearly stated or strongly implied in conversation (e.g. "non-smoker wife", "I've never smoked", "she doesn't smoke"), emit prefill_info with the inferred value immediately and skip asking; otherwise ask explicitly with a natural disclaimer — e.g. "honest answers here ensure seamless claims down the line". Once confirmed by answer or inference, emit prefill_info with the smoker field — this is required for the form to submit
+Ask naturally, one or two fields at a time — start with name. When asking for income, emit show_income_input alongside your message — do not mention USD, the panel handles the currency and format. When asking for DOB, emit show_dob_input alongside your message — the panel handles the input, do not specify a format. When asking for email, emit show_email_input alongside your message. Emit prefill_info as each value is confirmed. Once all 5 required fields (name, email, DOB, gender, income) AND smoker status are confirmed, show a brief summary of all collected details and invite confirmation — e.g. "Here's what I have: [summary]. Tap Confirmed when you're happy and I'll lock those in" — and emit show_chips with {"options":["Confirmed"]} alongside the summary so the user can confirm with a single tap; if anything is wrong they will simply type the correction, so do not add a second chip for corrections. Only emit confirm_active_card when the user confirms. Do not auto-submit. If the user gives multiple fields at once, emit prefill_info with all of them, then continue to the next missing field or the smoker question as appropriate. Gender must be collected — if it can be confidently inferred from conversation (e.g. "my wife", "she wants a policy", pronouns, possessives), emit prefill_info with the inferred value and skip asking; otherwise ask after DOB using show_chips with ["Male","Female"] and emit prefill_info immediately after. Smoker status must be confirmed before emitting confirm_active_card. If clearly stated or strongly implied in conversation (e.g. "non-smoker wife", "I've never smoked", "she doesn't smoke"), emit prefill_info with the inferred value immediately and skip asking; otherwise ask explicitly with a natural disclaimer — e.g. "honest answers here ensure seamless claims down the line". Once confirmed by answer or inference, emit prefill_info with the smoker field — this is required for the form to submit
 
 Medical details:
 Emit show_medical first — the height and weight panel opens automatically, so do not ask for height and weight conversationally. Your message should only contain the honest-answers note. Once you have height and weight, emit prefill_medical with those values and continue asking the remaining questions one at a time: (1) alcohol consumption, (2) any chronic conditions, (3) hospitalisation in the last 5 years, (4) regular medication, (5) family history of cancer, heart disease, or stroke, (6) hazardous activities. All toggle fields default to none/no — if the user skips one, move on. Once all six questions have been asked and answered or skipped, emit a final prefill_medical containing ALL 8 fields — height, weight, alc, cc, hosp, medic, fhist, haz — with their confirmed values or safe defaults. This single batch signals completion and triggers automatic submission. Do not emit confirm_active_card for medical; the complete prefill_medical is the trigger
@@ -457,20 +463,20 @@ investment → ULIP, unit linked, market linked, wealth plan, investment plan
 
 When the user names a plan type in natural language:
 - No personal details collected yet → emit select_plan immediately
-- Details already collected → warn that switching clears progress and ask if they want to proceed (action none). Only emit select_plan on the following turn if they confirm; if they decline, continue the current journey
+- Details already collected → warn that switching clears progress and ask if they want to proceed, emitting show_chips with ["Yes, switch plan","No, keep my progress"] alongside the warning. Only emit select_plan on the following turn if they confirm; if they decline, continue the current journey
 - You have just given the plan-switch warning: on the very next turn the ONLY valid actions are select_plan, reset_to_plan_selection, or none — do NOT emit confirm_active_card regardless of what the user says, since their reply is answering your plan-change question
 
 ── AFFORDABILITY ────────────────────────────────────────────────
 Savings/investment: if the intended premium exceeds 20% of income, flag the concern and suggest adjusting before emitting the quote
-Protection: premium is only known at acceptance. If the accepted premium exceeds 20% of income, acknowledge, flag the concern, suggest adjusting cover or term, and wait for explicit confirmation before emitting show_illustration
+Protection: premium is only known at acceptance. If the accepted premium exceeds 20% of income, acknowledge, flag the concern, suggest adjusting cover or term, and emit show_chips with ["Proceed anyway","Adjust the quote"]; on the next turn, Proceed anyway → show_illustration, Adjust the quote → scroll_to_card. Wait for that explicit choice before emitting show_illustration
 
 ── CONFIRMATION DETECTION ───────────────────────────────────────
 When activeCard is set and is not plan_card, nom_card, sig_card, pay_card, or kyc_card — check your immediately preceding message first:
 - It contained a yes/no question → treat yes, no, yeah, nope as answering that question; do NOT emit confirm_active_card regardless of activeCard
-- It contained no question AND the user's message is solely a confirmation word (yes, sure, ok, proceed, go ahead, looks good, fine, yep, absolutely) → emit confirm_active_card
+- It contained no question AND the user's message is solely a confirmation word (confirmed, yes, sure, ok, proceed, go ahead, looks good, fine, yep, absolutely) → emit confirm_active_card
 - Confirmation word plus a question or qualifier → answer the question; action none
 - plan_card active → ask the user to pick from the options above the chat bar
-- info_card active → if all 5 required fields (name, email, DOB, gender, income) AND smoker status are confirmed, show a summary and ask for confirmation before emitting confirm_active_card; otherwise ask for the missing fields
+- info_card active → if all 5 required fields (name, email, DOB, gender, income) AND smoker status are confirmed, show a summary with the show_chips ["Confirmed"] action and ask for confirmation before emitting confirm_active_card; otherwise ask for the missing fields
 - sig_card active → ask the user to draw their signature on the canvas or type their name below it
 - kyc_card active → ask the user to complete the details in the panel above
 - pay_card active → ask the user to fill in their card details in the panel above; if they ask why the cardholder name is locked or whether someone else can pay, explain that for compliance reasons the first premium must be paid from the policyholder's own card
@@ -495,7 +501,7 @@ PEP declared: acknowledge neutrally without judgement; note that enhanced due di
 - If the user wants to change personal details or medical information (no DOM card exists for these): take the updated value conversationally and emit prefill_info, prefill_quote, or prefill_medical as appropriate
 - Never assume or fabricate field values not explicitly provided in conversation or document
 - Never emit show_amount_input as an opening question — always use show_chips to confirm the user has an amount to declare (yes/no) before asking for the figure
-- When answering questions mid-journey while a quote, illustration, or signature card is active: always close your reply with a natural re-engagement — e.g. "When you're happy with the numbers, just say proceed — or if you'd like to tweak anything, just say adjust and I'll bring the card back up". If the user wants to modify the card emit scroll_to_card; if they want to confirm emit confirm_active_card`;
+- When answering questions mid-journey while a quote or illustration card is active: close your reply with a natural re-engagement and emit show_chips with ["Proceed","Adjust"]; on the next turn, Proceed → confirm_active_card, Adjust → scroll_to_card. While the signature card is active, re-engage in words only and remind the user to draw or type their signature on the card — never offer a Proceed chip there, since you cannot sign on their behalf`;
   ;return staticPart;})();
 function buildSysPrompt(){
   const u=S.u,age=u.dob?getAge(u.dob):null;
@@ -519,7 +525,8 @@ async function callAPI(userMsg,imgData=null){
   showTyping(true);
   try{
     const {staticPart,dynamicPart}=buildSysPrompt();
-    const body={messages:S.conv,systemStatic:staticPart,systemDynamic:dynamicPart};
+    const windowed=S.conv.length>61?S.conv.slice(-61):S.conv;
+    const body={messages:windowed,systemStatic:staticPart,systemDynamic:dynamicPart};
     if(imgData)body.imageData=imgData;
     const res=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const data=await res.json();
@@ -615,6 +622,7 @@ G('chat-file').addEventListener('change',function(){
     G('attach-name').textContent=file.name;
     G('attach-preview').style.display='flex';
     G('attach-btn').classList.add('active');
+    if(G('upl_pnl'))hidePanel();
     snd.disabled=S.busy;
   };
   reader.readAsDataURL(file);
@@ -649,21 +657,29 @@ async function executeAction(action){
     case 'show_income_input': handleShowIncomeInput();break;
     case 'show_amount_input': handleShowAmountInput();break;
     case 'show_email_input':  handleShowEmailInput();break;
+    case 'show_upload_prompt': handleShowUploadPrompt();break;
   }
 }
 
 function handleShowDobInput(){
   const now=new Date();
-  const maxD=new Date(now.getFullYear()-18,now.getMonth(),now.getDate()).toISOString().split('T')[0];
-  const minD=new Date(now.getFullYear()-70,now.getMonth(),now.getDate()).toISOString().split('T')[0];
+  const iso=d=>new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().split('T')[0];
+  const maxD=iso(new Date(now.getFullYear()-18,now.getMonth(),now.getDate()));
+  const minD=iso(new Date(now.getFullYear()-70,now.getMonth(),now.getDate()));
   showPanel(`<div class="pnl">
-    <input class="fi" id="dob_inp" type="date" min="${minD}" max="${maxD}" onchange="G('dob_btn').disabled=!this.value">
+    <input class="fi" id="dob_inp" type="date" min="${minD}" max="${maxD}" oninput="checkDob(this)" onchange="checkDob(this)">
     <button class="pnl-sub" id="dob_btn" disabled onclick="submitDob()">Confirm ${ic.arrow}</button>
   </div>`);
 }
 
+function checkDob(el){
+  const ok=!!el.value&&el.value>=el.min&&el.value<=el.max;
+  el.classList.toggle('err',!!el.value&&!ok);
+  G('dob_btn').disabled=!ok;
+}
+
 async function submitDob(){
-  const val=G('dob_inp').value;if(!val)return;
+  const el=G('dob_inp'),val=el.value;if(!val||val<el.min||val>el.max)return;
   const [y,m,d]=val.split('-');
   const dob=`${d}/${m}/${y}`;
   hidePanel();addUser(dob);
@@ -750,6 +766,13 @@ async function submitEmail(){
   await executeAction(resp.action);
   ensureProgress();
   S.busy=false;setActive(true);
+}
+
+function handleShowUploadPrompt(){
+  showPanel(`<div class="pnl" id="upl_pnl">
+    <button class="pnl-sub" style="margin-top:0" onclick="G('chat-file').click()">${ic.doc} Upload document</button>
+    <div class="phi" style="margin-top:0">${ic.lock} Encrypted in transit — used only for verification, never stored</div>
+  </div>`);
 }
 
 function handleShowChips(data){
@@ -1086,7 +1109,7 @@ async function agreeIll(){
 
 // ── Medical — panel ──
 function renderMedical(){
-  if(S.activeCard==='med_card')return;
+  if(S.activeCard==='med_card'&&(S.medVals.height||G('hw_btn')))return;
   S.activeCard='med_card';
   handleShowHeightWeightInput();
 }
@@ -1109,6 +1132,8 @@ function checkHW(){
 
 async function submitHW(){
   const h=Number(G('hw_h').value),w=Number(G('hw_w').value);if(!h||!w)return;
+  S.medVals.height=h;S.medVals.weight=w;
+  S.medExplicit.add('height');S.medExplicit.add('weight');
   const bmi=(w/Math.pow(h/100,2)).toFixed(1);
   hidePanel();
   addUser(`Height: ${h}cm &nbsp;·&nbsp; Weight: ${w}kg &nbsp;·&nbsp; BMI: ${bmi}`);
@@ -1131,7 +1156,7 @@ async function submitMed(){
   if(S.nameMatched)S.stage='doc_uploaded';
   const nextStep=S.nameMatched
     ?(S.kycDone?'the passport has already been verified earlier, so please proceed directly to the signature step':'the passport has already been verified earlier, so please proceed to KYC collection')
-    :'please ask the user to share their passport using the paperclip icon, and reassure them in the same message that it is encrypted in transit, used only to verify their identity, and never stored';
+    :'please ask the user to share their passport, emit show_upload_prompt so they get an upload button, and reassure them in the same message that it is encrypted in transit, used only to verify their identity, and never stored';
   const resp=await callAPI(`Medical questionnaire complete — ${summary} — ${nextStep}`);
   if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);
   ensureProgress();
