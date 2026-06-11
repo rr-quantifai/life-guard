@@ -784,7 +784,7 @@ function handlePrefillQuote(data){
   }else if(p==='investment'&&G('inv_card')){
     if(data.premium!==undefined)G('iv_psl').value=data.premium;
     if(data.term!==undefined)G('iv_tsl').value=data.term;
-    if(data.fund){const el=document.querySelector(`#fund_opts .fnd[onclick*="${data.fund}"]`);if(el)pickFund(data.fund,el);}
+    if(data.fund&&FUNDS[data.fund]){const el=document.querySelector(`#fund_opts .fnd[onclick*="${data.fund}"]`);if(el)pickFund(data.fund,el);}
     upInvQ();
     const comp=G('inv_card').closest('.comp');if(comp){msgs.appendChild(comp);scroll();}
   }
@@ -805,7 +805,7 @@ function handlePrefillMedical(data){
 let _silentConfirm=false;
 function handleConfirmActiveCard(){
   const id=S.activeCard;if(!id)return;
-  if(id==='sig_card'){addBot("Please draw your signature on the canvas — I can't do that part for you");return;}
+  if(id==='sig_card'){addBot("Please draw your signature on the canvas or type your name below it — I can't do that part for you");return;}
   if(id==='pay_card'){addBot("Please fill in your card details in the panel above to complete payment");return;}
   if(id==='plan_card'){addBot("Please pick a plan from the options above the chat bar");return;}
   if(id==='nom_card'){addBot("Please fill in your nominee details in the panel above — I can't do that part for you");return;}
@@ -1093,7 +1093,7 @@ async function submitMed(){
   if(!h||!w){addBot("I still need your height and weight before we can continue");return;}
   const bmi=(w/Math.pow(h/100,2)).toFixed(1);
   S.stage='medical_done';S.busy=true;setActive(false);
-  if(!wasSilent)addUser(`Height: ${h}cm &nbsp;·&nbsp; Weight: ${w}kg &nbsp;·&nbsp; BMI: ${bmi}<br>Alcohol: ${alc} &nbsp;·&nbsp; Chronic: ${cc} &nbsp;·&nbsp; Hospitalised: ${hosp}<br>Medication: ${medic} &nbsp;·&nbsp; Family history: ${fhist} &nbsp;·&nbsp; Hazardous: ${haz}`);
+  if(!wasSilent)addUser(`Height: ${h}cm &nbsp;·&nbsp; Weight: ${w}kg &nbsp;·&nbsp; BMI: ${bmi}<br>Alcohol: ${esc(alc)} &nbsp;·&nbsp; Chronic: ${esc(cc)} &nbsp;·&nbsp; Hospitalised: ${esc(hosp)}<br>Medication: ${esc(medic)} &nbsp;·&nbsp; Family history: ${esc(fhist)} &nbsp;·&nbsp; Hazardous: ${esc(haz)}`);
   const summary=`Height:${h}cm, Weight:${w}kg, BMI:${bmi}, Alcohol:${alc}, Chronic conditions:${cc}, Hospitalised:${hosp}, Medication:${medic}, Family history:${fhist}, Hazardous activities:${haz}`;
   const resp=await callAPI(`Medical questionnaire complete — ${summary} — please ask the user to share their passport using the paperclip icon, and reassure them in the same message that it is encrypted in transit, used only to verify their identity, and never stored`);
   if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
@@ -1145,7 +1145,7 @@ async function submitSig(){
   const c=window._sigCanvas;if(!c)return;
   const data=c.getContext('2d').getImageData(0,0,c.width,c.height).data;
   let signed=false;for(let i=3;i<data.length;i+=4){if(data[i]>0){signed=true;break;}}
-  if(!signed){addBot("Please draw your signature on the canvas before proceeding");return;}
+  if(!signed){addBot("Please draw your signature on the canvas, or type your name below it, before proceeding");return;}
   lockCard('sig_card');S.stage='signed';
   S.busy=true;setActive(false);
   addUser('Signature submitted');
