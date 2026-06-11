@@ -42,7 +42,7 @@ body{height:100%;background:var(--bg);color:var(--tx);font-family:'Inter',ui-san
 .chips{display:flex;flex-wrap:wrap;gap:8px;padding:12px 14px}
 .chip{padding:9px 15px;background:var(--s2);border:1.5px solid var(--bd);border-radius:20px;font:500 13px/1 'Inter',ui-sans-serif,sans-serif;color:var(--t2);cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:7px}
 .chip.circle{width:36px;height:36px;padding:0;border-radius:50%}
-.chip:hover,.chip.sel{border-color:var(--a);color:var(--ad);background:var(--aa)}
+.chip:hover{border-color:var(--a);color:var(--ad);background:var(--aa)}
 .pnl{padding:14px 14px 4px}
 .pnl-sub{width:100%;padding:12px;background:var(--a);color:#fff;border:none;border-radius:11px;font:700 13px 'Inter',ui-sans-serif,sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:background .2s;margin-top:10px;margin-bottom:10px}
 .pnl-sub:hover{background:var(--ad)}
@@ -212,11 +212,12 @@ const S = {
   conv:[], u:{name:'',email:'',dob:'',gender:'male',income:0,smoker:false,smokerConfirmed:false,plan:''},
   q:{cover:0,term:20,premium:0,fund:'balanced'}, stage:'start', busy:false,
   medVals:{alc:'none',cc:'no',hosp:'no',medic:'no',fhist:'no',haz:'no',height:0,weight:0},
-  medExplicit:new Set(), activeCard:null, nameMatched:false, nominees:[]
+  medExplicit:new Set(), activeCard:null, nameMatched:false, nominees:[],
+  kyc:{nationality:'',pep:null,house:'',street:'',city:'',country:''}, kycDone:false
 };
 let _attachFile = null;
 
-const STAGE_PCT={start:0,plan_selected:10,info_collected:25,quote_accepted:40,illustration_agreed:50,medical_done:62,doc_uploaded:72,signed:82,paid:90,nominee_done:96,completed:100};
+const STAGE_PCT={start:0,plan_selected:10,info_collected:25,quote_accepted:40,illustration_agreed:50,medical_done:60,doc_uploaded:68,kyc_done:76,signed:84,paid:90,nominee_done:96,completed:100};
 let _stageVal=S.stage;
 Object.defineProperty(S,'stage',{get:()=>_stageVal,set:v=>{_stageVal=v;const b=G('prog');if(b)b.style.width=(STAGE_PCT[v]??0)+'%';}});
 
@@ -226,6 +227,7 @@ function showPanel(html){ const p=G('panel'); p.innerHTML=html; p.style.display=
 function hidePanel(){ const p=G('panel'); p.style.display='none'; p.innerHTML=''; msgs.style.paddingBottom='0'; }
 
 const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const normName = s => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z ]/g,'').replace(/\s+/g,' ').trim();
 const fmt = n => '$'+Math.round(n).toLocaleString('en-US');
 const delay = ms => new Promise(r=>setTimeout(r,ms));
 
@@ -276,9 +278,7 @@ function buildIllustration(){
 // ── Card locking + editing (DOM cards only: prot/sav/inv/ill/sig) ──
 const STAGE_MAP={
   prot_card:'info_collected', sav_card:'info_collected', inv_card:'info_collected',
-  ill_card:'quote_accepted', sig_card:'doc_uploaded',
-  // panel-based — kept so editCard can route them correctly
-  plan_card:'start', info_card:'plan_selected', med_card:'illustration_agreed'
+  ill_card:'quote_accepted', sig_card:'kyc_done'
 };
 
 function lockCard(id){
@@ -303,6 +303,7 @@ function editCard(id,resetStage,force=false){
   if(id==='plan_card'){
     S.u={name:'',email:'',dob:'',gender:'male',income:0,smoker:false,smokerConfirmed:false,plan:''};
     S.nameMatched=false;
+    S.kyc={nationality:'',pep:null,house:'',street:'',city:'',country:''};S.kycDone=false;
     S.medVals={alc:'none',cc:'no',hosp:'no',medic:'no',fhist:'no',haz:'no',height:0,weight:0};
     S.medExplicit=new Set();
     S.nominees=[];
@@ -329,7 +330,6 @@ function editCard(id,resetStage,force=false){
     hidePanel();
     if(id==='plan_card') renderPlans();
     else if(id==='info_card'){setTimeout(()=>{if(S.u.name)prefillInfoCard(S.u);},50);}
-    else if(id==='med_card'){S.activeCard=null;renderMedical();}
   }
 }
 
@@ -373,11 +373,13 @@ show_illustration → show a year-by-year policy table; prerequisite: a quote ha
 
 show_medical → activate the medical collection stage; the height and weight panel opens automatically — your message should contain only the honest-answers note, e.g. "Just so you know, honest answers here really matter — any undisclosed condition can affect your coverage or lead to a claim being declined. Nothing here is judged, it just needs to be accurate"; prerequisite: illustration agreed
 
-show_signature → show a signature canvas; prerequisites: medical complete AND passport verified
+show_kyc → show the KYC panel collecting nationality, residential address, and politically exposed person (PEP) status; the panel handles all input so your message should be a brief one-liner introducing the step; prerequisite: passport verified; if the user wants to change any KYC detail before signing, emit show_kyc again — the panel reopens prefilled
+
+show_signature → show a signature canvas; prerequisites: medical complete AND passport verified AND KYC complete
 
 show_nominee → show the beneficiary panel; prerequisite: payment complete
 
-prefill_info  data:{"name":"","email":"","dob":"DD/MM/YYYY","gender":"male|female","income":0,"smoker":false} → silently store personal fields learned from conversation or a document; include only known fields; emit incrementally as each value is confirmed
+prefill_info  data:{"name":"","email":"","dob":"DD/MM/YYYY","gender":"male|female","income":0,"smoker":false,"nationality":""} → silently store personal fields learned from conversation or a document; include only known fields; emit incrementally as each value is confirmed
 
 prefill_quote  data:{"cover":0,"term":0,"premium":0,"fund":"..."} → adjust the active quote card's values; include only changed fields
 
@@ -385,7 +387,7 @@ prefill_medical  data:{"height":0,"weight":0,"alc":"none|occasional|regular","cc
 
 prefill_nominee  data:[{"name":"","relationship":"Spouse|Child|Parent|Sibling|Other","share":0}] → pre-fill the nominee form; shares must total 100; only emit after show_nominee has rendered
 
-confirm_active_card → programmatically submit the active card; never use for plan_card, nom_card, sig_card, or pay_card
+confirm_active_card → programmatically submit the active card; never use for plan_card, nom_card, sig_card, pay_card, or kyc_card
 
 passport_verified → emit when a shared ID confirms the name matches the name in the CURRENT USER context
 
@@ -435,7 +437,7 @@ Help genuinely with any request that serves the user's understanding or decision
 
 ── DOCUMENT HANDLING ────────────────────────────────────────────
 Government-issued photo ID (passport, driving licence, national ID, residence permit):
-  If passport not yet verified: extract name, DOB, gender. If name already known, compare to the name shown in the CURRENT USER context — match → emit passport_verified; mismatch → tell the user clearly, state the name on file (from CURRENT USER context), and ask whether they'd like to upload a different ID or if the application name needs correcting (they can double-tap the info summary to edit). Emit prefill_info with all extractable fields. State exactly what was found and what is still missing
+  If passport not yet verified: extract name, DOB, gender, and nationality. If name already known, compare to the name shown in the CURRENT USER context — match → emit passport_verified; mismatch → tell the user clearly, state the name on file (from CURRENT USER context), and ask whether they'd like to upload a different ID, or simply tell you the correct name so you can update it. Emit prefill_info with all extractable fields. State exactly what was found and what is still missing
   If passport already verified: acknowledge briefly; action none
 
 Insurance document or quotation:
@@ -463,14 +465,15 @@ Savings/investment: if the intended premium exceeds 20% of income, flag the conc
 Protection: premium is only known at acceptance. If the accepted premium exceeds 20% of income, acknowledge, flag the concern, suggest adjusting cover or term, and wait for explicit confirmation before emitting show_illustration
 
 ── CONFIRMATION DETECTION ───────────────────────────────────────
-When activeCard is set and is not plan_card, nom_card, sig_card, or pay_card — check your immediately preceding message first:
+When activeCard is set and is not plan_card, nom_card, sig_card, pay_card, or kyc_card — check your immediately preceding message first:
 - It contained a yes/no question → treat yes, no, yeah, nope as answering that question; do NOT emit confirm_active_card regardless of activeCard
 - It contained no question AND the user's message is solely a confirmation word (yes, sure, ok, proceed, go ahead, looks good, fine, yep, absolutely) → emit confirm_active_card
 - Confirmation word plus a question or qualifier → answer the question; action none
 - plan_card active → ask the user to pick from the options above the chat bar
 - info_card active → if all 5 required fields (name, email, DOB, gender, income) AND smoker status are confirmed, show a summary and ask for confirmation before emitting confirm_active_card; otherwise ask for the missing fields
-- sig_card active → ask the user to draw their signature on the canvas
-- pay_card active → ask the user to fill in their card details in the panel above
+- sig_card active → ask the user to draw their signature on the canvas or type their name below it
+- kyc_card active → ask the user to complete the details in the panel above
+- pay_card active → ask the user to fill in their card details in the panel above; if they ask why the cardholder name is locked or whether someone else can pay, explain that for compliance reasons the first premium must be paid from the policyholder's own card
 
 ── SENSITIVE SCENARIOS ──────────────────────────────────────────
 Recent bereavement: acknowledge warmly, pause the journey. Resume exactly where you left off when the user signals readiness — do not repeat completed steps
@@ -478,6 +481,7 @@ Terminal or serious diagnosis: express empathy; note pre-existing conditions mus
 Anxiety about mortality: gently reframe — this policy is an act of love for the people who depend on them
 Cannot afford much: help find minimum viable coverage; do not default to 120× income
 Employer insurance mentioned: acknowledge the benefit; note it ends with the job, is typically 2–4× salary, and cannot be personalised; recommend a personal policy as the portable permanent foundation; re-engage based on current stage
+PEP declared: acknowledge neutrally without judgement; note that enhanced due diligence may apply and the application could need additional review; continue the journey normally
 
 ── RULES ────────────────────────────────────────────────────────
 - JSON only — no markdown, no extra text outside the JSON object
@@ -485,6 +489,7 @@ Employer insurance mentioned: acknowledge the benefit; note it ends with the job
 - Responses warm and concise (2–3 sentences). Never end with a period — drop all terminal punctuation for a casual, conversational feel
 - During info or medical collection (info_card or med_card active), ALWAYS include a message — acknowledge what was received, show any calculated value (e.g. BMI), and ask the next question or confirm completion. Never emit message:"" during collection. Outside collection, set "message" to "" only for a single unambiguous field value where the action itself is sufficient feedback
 - Occasionally signal progress naturally — "almost there", "just a couple more steps" — especially before medical collection and before signature. Never fabricate specific step counts
+- NEVER describe a question as "the last one", "the final question", or "just one more" during personal details collection or the needs assessment — further questions always follow those stages, including conditional follow-ups you cannot predict. The ONLY question in the entire journey that may be introduced as the last one is medical question 6 (hazardous activities). Everywhere else, ask the question without commenting on how many remain — vague encouragement like "almost there" is fine, a countable promise is not
 - Do not re-trigger stages already completed
 - If the user wants to change something on a locked DOM card (prot_card, sav_card, inv_card, ill_card, sig_card): emit scroll_to_card with data:{"id":"<the card id>"} and message:"" — the card overlay handles edit instructions
 - If the user wants to change personal details or medical information (no DOM card exists for these): take the updated value conversationally and emit prefill_info, prefill_quote, or prefill_medical as appropriate
@@ -503,7 +508,8 @@ function buildSysPrompt(){
 ${ctx}
 Current journey stage: ${S.stage}
 Active card awaiting confirmation: ${S.activeCard||'none'}
-Passport verified: ${S.nameMatched}`;
+Passport verified: ${S.nameMatched}
+KYC: ${S.kycDone?`Nationality=${S.kyc.nationality}, PEP=${S.kyc.pep?'Yes':'No'}, Address=${S.kyc.house} ${S.kyc.street}, ${S.kyc.city}, ${S.kyc.country}`:'not yet collected'}`;
   return {staticPart:STATIC_PROMPT,dynamicPart};
 }
 
@@ -547,8 +553,20 @@ async function retryLast(){
   const resp=await callAPI(msg,img);
   if(resp.message&&resp.message.trim())addBot(resp.message);
   await executeAction(resp.action);
-  if(S.stage==='signed'&&!G('py_name'))renderPayment();
+  ensureProgress();
   S.busy=false;setActive(true);
+}
+
+function ensureProgress(){
+  if(window._lastFailed)return;
+  switch(S.stage){
+    case 'quote_accepted': if(S.u.plan!=='protection'||S.q.premium<=0.2*S.u.income)renderIllustration(); break;
+    case 'illustration_agreed': renderMedical(); break;
+    case 'doc_uploaded': if(!S.kycDone)renderKyc(); break;
+    case 'kyc_done': renderSignature(); break;
+    case 'signed': renderPayment(); break;
+    case 'paid': renderNominee(); break;
+  }
 }
 
 // ── Chat rendering ──
@@ -577,7 +595,7 @@ function addUser(html){
 }
 function addComp(html){
   const div=document.createElement('div');div.className='comp';div.innerHTML=html;
-  msgs.appendChild(div);scroll();return div;
+  msgs.appendChild(div);scroll();
 }
 
 // ── Attachment ──
@@ -614,6 +632,7 @@ async function executeAction(action){
     case 'show_investment_quote': if(action.data?.premium!==undefined)S.q.premium=action.data.premium;if(action.data?.term!==undefined)S.q.term=action.data.term;if(action.data?.fund!==undefined)S.q.fund=action.data.fund;renderInvQuote();break;
     case 'show_illustration':     renderIllustration();break;
     case 'show_medical':          renderMedical();break;
+    case 'show_kyc':              renderKyc();break;
     case 'show_signature':        renderSignature();break;
     case 'show_nominee':          renderNominee();break;
     case 'prefill_nominee':       handlePrefillNominee(action.data);break;
@@ -652,6 +671,7 @@ async function submitDob(){
   const resp=await callAPI(dob);
   if(resp.message&&resp.message.trim())addBot(resp.message);
   await executeAction(resp.action);
+  ensureProgress();
   S.busy=false;setActive(true);
 }
 
@@ -680,6 +700,7 @@ async function submitIncome(){
   const resp=await callAPI(String(val));
   if(resp.message&&resp.message.trim())addBot(resp.message);
   await executeAction(resp.action);
+  ensureProgress();
   S.busy=false;setActive(true);
 }
 
@@ -702,6 +723,7 @@ async function submitAmount(){
   const resp=await callAPI(String(val));
   if(resp.message&&resp.message.trim())addBot(resp.message);
   await executeAction(resp.action);
+  ensureProgress();
   S.busy=false;setActive(true);
 }
 
@@ -726,6 +748,7 @@ async function submitEmail(){
   const resp=await callAPI(val);
   if(resp.message&&resp.message.trim())addBot(resp.message);
   await executeAction(resp.action);
+  ensureProgress();
   S.busy=false;setActive(true);
 }
 
@@ -742,6 +765,7 @@ async function pickChip(val){
   const resp=await callAPI(val);
   if(resp.message&&resp.message.trim())addBot(resp.message);
   await executeAction(resp.action);
+  ensureProgress();
   S.busy=false;setActive(true);
 }
 
@@ -812,6 +836,7 @@ function handleConfirmActiveCard(){
   if(id==='pay_card'){addBot("Please fill in your card details in the panel above to complete payment");return;}
   if(id==='plan_card'){addBot("Please pick a plan from the options above the chat bar");return;}
   if(id==='nom_card'){addBot("Please fill in your nominee details in the panel above — I can't do that part for you");return;}
+  if(id==='kyc_card'){addBot("Please complete the details in the panel above — I can't fill those in for you");return;}
   if(id==='info_card'){
     if(checkInfo()){_silentConfirm=true;submitInfo();}
     else addBot("I still need a few things — your name, email, date of birth, monthly income, and whether you smoke");
@@ -831,9 +856,10 @@ async function handlePassportVerified(){
   S.nameMatched=true;
   if(S.stage==='medical_done')S.stage='doc_uploaded';
   await delay(400);
-  const resp=await callAPI('Passport has been verified — please continue the journey');
+  const resp=await callAPI(S.kycDone?'Passport has been verified — please continue the journey':'Passport has been verified — please proceed to KYC collection');
   if(resp.message&&resp.message.trim())addBot(resp.message);
   await executeAction(resp.action);
+  ensureProgress();
 }
 
 async function sendUserMsg(){
@@ -851,6 +877,7 @@ async function sendUserMsg(){
   else{resp=await callAPI(text);}
   if(resp.message&&resp.message.trim())addBot(resp.message);
   await executeAction(resp.action);
+  ensureProgress();
   S.busy=false;setActive(true);
 }
 
@@ -879,6 +906,7 @@ async function pickPlan(plan){
   const resp=await callAPI(`Plan selected: ${labels[plan]} — please start collecting my details`);
   if(resp.message&&resp.message.trim())addBot(resp.message);
   await executeAction(resp.action);
+  ensureProgress();
   S.busy=false;setActive(true);
 }
 
@@ -895,6 +923,7 @@ function prefillInfoCard(u){
   if(u.income!==undefined)S.u.income=Number(u.income);
   if(u.gender!==undefined)S.u.gender=u.gender;
   if(u.smoker!==undefined){S.u.smoker=!!u.smoker;S.u.smokerConfirmed=true;}
+  if(u.nationality!==undefined)S.kyc.nationality=u.nationality;
 }
 
 async function submitInfo(){
@@ -944,7 +973,7 @@ async function acceptProtQ(){
   S.q.premium=mp;lockCard('prot_card');S.stage='quote_accepted';S.busy=true;setActive(false);
   if(!wasSilent)addUser(`Protection plan confirmed — ${fmt(cover)} cover, ${term}-year term, ${fmt(mp)}/month`);
   const resp=await callAPI(`I've accepted the Protection Plan — cover: ${fmt(cover)}, term: ${term} years, premium: ${fmt(mp)}/month — please show me the policy illustration`);
-  if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
+  if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);ensureProgress();S.busy=false;setActive(true);
 }
 
 // ── Savings quote — inline card ──
@@ -979,7 +1008,7 @@ async function acceptSavQ(){
   lockCard('sav_card');S.stage='quote_accepted';S.busy=true;setActive(false);
   if(!wasSilent)addUser(`Savings plan confirmed — ${fmt(premium)}/month, ${term}-year term`);
   const resp=await callAPI(`I've accepted the savings plan — premium: ${fmt(premium)}/month, term: ${term} years — please show me the illustration`);
-  if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
+  if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);ensureProgress();S.busy=false;setActive(true);
 }
 
 // ── Investment quote — inline card ──
@@ -1026,7 +1055,7 @@ async function acceptInvQ(){
   lockCard('inv_card');S.stage='quote_accepted';S.busy=true;setActive(false);
   if(!wasSilent)addUser(`Investment plan confirmed — ${fmt(premium)}/month, ${term} yrs, ${FUNDS[fund].label} Fund`);
   const resp=await callAPI(`I've accepted the investment plan — premium: ${fmt(premium)}/month, term: ${term} years, fund: ${FUNDS[fund].label} (${FUNDS[fund].rate}%), projected maturity: ${fmt(mat)} — please show the illustration`);
-  if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
+  if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);ensureProgress();S.busy=false;setActive(true);
 }
 
 // ── Illustration — inline card ──
@@ -1052,7 +1081,7 @@ async function agreeIll(){
   lockCard('ill_card');S.stage='illustration_agreed';S.busy=true;setActive(false);
   if(!wasSilent)addUser('Policy illustration agreed');
   const resp=await callAPI("I've reviewed and agreed to the policy illustration — please proceed to the medical questionnaire");
-  if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
+  if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);ensureProgress();S.busy=false;setActive(true);
 }
 
 // ── Medical — panel ──
@@ -1065,15 +1094,15 @@ function renderMedical(){
 function handleShowHeightWeightInput(){
   showPanel(`<div class="pnl">
     <div class="flds">
-      <div class="bmir"><input class="fi" id="hw_h" type="number" placeholder="Height" min="100" max="250" oninput="previewBMI()"><div class="bmib">cm</div></div>
-      <div class="bmir"><input class="fi" id="hw_w" type="number" placeholder="Weight" min="30" max="300" oninput="previewBMI()"><div class="bmib">kg</div></div>
+      <div class="bmir"><input class="fi" id="hw_h" type="number" placeholder="Height" min="100" max="250" oninput="checkHW()"><div class="bmib">cm</div></div>
+      <div class="bmir"><input class="fi" id="hw_w" type="number" placeholder="Weight" min="30" max="300" oninput="checkHW()"><div class="bmib">kg</div></div>
     </div>
     <div class="phi" style="margin-top:2px;margin-bottom:8px">${ic.lock} Confidential — used only for underwriting your policy</div>
     <button class="pnl-sub" id="hw_btn" disabled onclick="submitHW()">Confirm ${ic.arrow}</button>
   </div>`);
 }
 
-function previewBMI(){
+function checkHW(){
   const h=Number(G('hw_h')?.value||0),w=Number(G('hw_w')?.value||0);
   G('hw_btn').disabled=!(h>=100&&h<=250&&w>=30&&w<=300);
 }
@@ -1087,6 +1116,7 @@ async function submitHW(){
   const resp=await callAPI(`Height: ${h}cm, Weight: ${w}kg`);
   if(resp.message&&resp.message.trim())addBot(resp.message);
   await executeAction(resp.action);
+  ensureProgress();
   S.busy=false;setActive(true);
 }
 
@@ -1100,15 +1130,58 @@ async function submitMed(){
   const summary=`Height:${h}cm, Weight:${w}kg, BMI:${bmi}, Alcohol:${alc}, Chronic conditions:${cc}, Hospitalised:${hosp}, Medication:${medic}, Family history:${fhist}, Hazardous activities:${haz}`;
   if(S.nameMatched)S.stage='doc_uploaded';
   const nextStep=S.nameMatched
-    ?'the passport has already been verified earlier, so please proceed directly to the signature step'
+    ?(S.kycDone?'the passport has already been verified earlier, so please proceed directly to the signature step':'the passport has already been verified earlier, so please proceed to KYC collection')
     :'please ask the user to share their passport using the paperclip icon, and reassure them in the same message that it is encrypted in transit, used only to verify their identity, and never stored';
   const resp=await callAPI(`Medical questionnaire complete — ${summary} — ${nextStep}`);
-  if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
+  if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);
+  ensureProgress();
+  S.busy=false;setActive(true);
+}
+
+// ── KYC — panel ──
+function renderKyc(){
+  if(G('kyc_house'))return;
+  if(['signed','paid','nominee_done','completed'].includes(S.stage))return;
+  S.activeCard='kyc_card';
+  const k=S.kyc;
+  showPanel(`<div class="pnl">
+    <div class="flds">
+      <input class="fi" id="kyc_nat" type="text" placeholder="Nationality" value="${esc(k.nationality)}" oninput="checkKyc()">
+      <input class="fi" id="kyc_house" type="text" placeholder="House / flat number" value="${esc(k.house)}" oninput="checkKyc()">
+      <input class="fi" id="kyc_street" type="text" placeholder="Street name" value="${esc(k.street)}" oninput="checkKyc()">
+      <input class="fi" id="kyc_city" type="text" placeholder="City" value="${esc(k.city)}" oninput="checkKyc()">
+      <input class="fi" id="kyc_country" type="text" placeholder="Country of residence" value="${esc(k.country)}" oninput="checkKyc()">
+    </div>
+    <label class="decl" style="margin:12px 0 0"><input type="checkbox" id="kyc_pep"${k.pep?' checked':''}> I am a politically exposed person (PEP), or an immediate family member or close associate of one</label>
+    <div class="phi" style="margin-top:8px;margin-bottom:2px">${ic.lock} Required for identity and AML verification</div>
+    <button class="pnl-sub" id="kyc_btn" disabled onclick="submitKyc()">Confirm details ${ic.arrow}</button>
+  </div>`);
+  checkKyc();
+}
+
+function checkKyc(){
+  const v=id=>G(id)?.value.trim()||'';
+  const ok=v('kyc_house').length>=1&&['kyc_nat','kyc_street','kyc_city','kyc_country'].every(id=>v(id).length>=2);
+  const b=G('kyc_btn');if(b)b.disabled=!ok;
+}
+
+async function submitKyc(){
+  const k={nationality:G('kyc_nat').value.trim(),house:G('kyc_house').value.trim(),street:G('kyc_street').value.trim(),city:G('kyc_city').value.trim(),country:G('kyc_country').value.trim(),pep:G('kyc_pep').checked};
+  S.kyc=k;S.kycDone=true;
+  hidePanel();S.stage='kyc_done';S.activeCard=null;
+  S.busy=true;setActive(false);
+  addUser(`Nationality: ${esc(k.nationality)} &nbsp;·&nbsp; PEP: ${k.pep?'Yes':'No'}<br>${esc(k.house)} ${esc(k.street)}, ${esc(k.city)}, ${esc(k.country)}`);
+  const resp=await callAPI(`KYC details confirmed — Nationality: ${k.nationality}, PEP: ${k.pep?'yes':'no'}, Address: ${k.house} ${k.street}, ${k.city}, ${k.country} — ${k.pep?'the user has declared PEP status, so acknowledge neutrally that enhanced due diligence may apply and the application may need additional review, then':'please'} proceed to the signature step`);
+  if(resp.message&&resp.message.trim())addBot(resp.message);
+  await executeAction(resp.action);
+  ensureProgress();
+  S.busy=false;setActive(true);
 }
 
 // ── Signature — inline card ──
 function renderSignature(){
   if(G('sig_card'))return;
+  if(!S.kycDone){renderKyc();return;}
   S.activeCard='sig_card';
   addComp(`<div class="card" id="sig_card">
     <div class="ctag">Digital signature</div>
@@ -1171,8 +1244,9 @@ function renderPayment(){
   showPanel(`<div class="pnl">
     <div class="cnets"><div class="cnet">VISA</div><div class="cnet">MC</div><div class="cnet">AMEX</div></div>
     <div class="payamt"><span class="payamt-l">First month premium</span><span class="payamt-v">${fmt(amount)}</span></div>
+    <div class="phi" style="margin-top:0;margin-bottom:10px">${ic.lock} For compliance, payment must be made using the policyholder's own card</div>
     <div class="flds">
-      <input class="fi" id="py_name" type="text" placeholder="Name on card">
+      <input class="fi" id="py_name" type="text" value="${esc(S.u.name)}" readonly style="opacity:.65;cursor:not-allowed" title="For compliance, the premium must be paid by the policyholder">
       <input class="fi" id="py_card" type="tel" placeholder="Card number" maxlength="19" oninput="fmtCard(this)">
       <div class="pay2"><input class="fi" id="py_exp" type="tel" placeholder="MM / YY" maxlength="7" oninput="fmtExp(this)"><input class="fi" id="py_cvv" type="tel" placeholder="CVV" maxlength="4" style="flex:0 0 80px"></div>
     </div>
@@ -1187,7 +1261,7 @@ function fmtExp(el){let v=el.value.replace(/\D/g,'');if(v.length>2)v=v.slice(0,2
 async function submitPay(fmtAmt){
   const nm=G('py_name').value.trim(),cd=G('py_card').value.replace(/\s/g,''),ex=G('py_exp').value.replace(/[\s\/]/g,''),cv=G('py_cvv').value.trim();
   let err=false;
-  if(!nm){G('py_name').classList.add('err');err=true;}else G('py_name').classList.remove('err');
+  if(!nm||normName(nm)!==normName(S.u.name)){G('py_name').classList.add('err');err=true;}else G('py_name').classList.remove('err');
   if(cd.length<13){G('py_card').classList.add('err');err=true;}else G('py_card').classList.remove('err');
   const exOk=(()=>{if(ex.length<4)return false;const mm=parseInt(ex.slice(0,2)),yy=parseInt(ex.slice(2));if(mm<1||mm>12)return false;const now=new Date();return yy*100+mm>=now.getFullYear()%100*100+now.getMonth()+1;})();
   if(!exOk){G('py_exp').classList.add('err');err=true;}else G('py_exp').classList.remove('err');
@@ -1198,7 +1272,7 @@ async function submitPay(fmtAmt){
   hidePanel();S.stage='paid';S.busy=true;setActive(false);
   addUser(`Payment of ${fmtAmt} processed`);
   const resp=await callAPI(`Payment was successful — please show the nominee collection screen now`);
-  if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
+  if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);ensureProgress();S.busy=false;setActive(true);
 }
 
 // ── Nominees — panel ──
