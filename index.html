@@ -547,6 +547,7 @@ async function retryLast(){
   const resp=await callAPI(msg,img);
   if(resp.message&&resp.message.trim())addBot(resp.message);
   await executeAction(resp.action);
+  if(S.stage==='signed'&&!G('py_name'))renderPayment();
   S.busy=false;setActive(true);
 }
 
@@ -762,6 +763,8 @@ function handleSelectPlan(data){
     S.medVals={alc:'none',cc:'no',hosp:'no',medic:'no',fhist:'no',haz:'no',height:0,weight:0};
     S.medExplicit=new Set();
     S.nominees=[];
+    msgs.querySelectorAll('[data-sentinel]').forEach(s=>s.remove());
+    ['prot_card','sav_card','inv_card','ill_card','sig_card'].forEach(id=>{const c=G(id);if(c)c.closest('.comp')?.remove();});
     editCard('info_card','plan_selected',true);
   }else{
     S.stage='plan_selected';
@@ -901,7 +904,7 @@ async function submitInfo(){
   const age=getAge(dob);
   if(plan==='protection'){S.q.cover=Math.min(120*income,1000000);S.q.term=Math.max(10,Math.min(30,65-Math.round(age)));}
   else{S.q.premium=Math.max(100,Math.min(10000,Math.round(income*0.1)));S.q.term=10;}
-  S.stage='info_collected';S.busy=true;setActive(false);
+  S.stage='info_collected';S.activeCard=null;S.busy=true;setActive(false);
   if(!wasSilent)addUser(`Name: ${esc(name)} &nbsp;·&nbsp; ${esc(email)}<br>${dob} &nbsp;·&nbsp; ${gender==='male'?'Male':'Female'} &nbsp;·&nbsp; $${income.toLocaleString('en-US')}/mo &nbsp;·&nbsp; ${smoker?'Smoker':'Non-smoker'}`);
   const resp=await callAPI(`Details confirmed — Name="${name}", DOB=${dob} (age ${age}), Gender=${gender}, Income=$${income}/mo, Smoker=${smoker?'yes':'no'}, Plan: ${plan}`);
   if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
@@ -1092,10 +1095,14 @@ async function submitMed(){
   const {height:h,weight:w,alc,cc,hosp,medic,fhist,haz}=S.medVals;
   if(!h||!w){addBot("I still need your height and weight before we can continue");return;}
   const bmi=(w/Math.pow(h/100,2)).toFixed(1);
-  S.stage='medical_done';S.busy=true;setActive(false);
+  S.stage='medical_done';S.activeCard=null;S.busy=true;setActive(false);
   if(!wasSilent)addUser(`Height: ${h}cm &nbsp;·&nbsp; Weight: ${w}kg &nbsp;·&nbsp; BMI: ${bmi}<br>Alcohol: ${esc(alc)} &nbsp;·&nbsp; Chronic: ${esc(cc)} &nbsp;·&nbsp; Hospitalised: ${esc(hosp)}<br>Medication: ${esc(medic)} &nbsp;·&nbsp; Family history: ${esc(fhist)} &nbsp;·&nbsp; Hazardous: ${esc(haz)}`);
   const summary=`Height:${h}cm, Weight:${w}kg, BMI:${bmi}, Alcohol:${alc}, Chronic conditions:${cc}, Hospitalised:${hosp}, Medication:${medic}, Family history:${fhist}, Hazardous activities:${haz}`;
-  const resp=await callAPI(`Medical questionnaire complete — ${summary} — please ask the user to share their passport using the paperclip icon, and reassure them in the same message that it is encrypted in transit, used only to verify their identity, and never stored`);
+  if(S.nameMatched)S.stage='doc_uploaded';
+  const nextStep=S.nameMatched
+    ?'the passport has already been verified earlier, so please proceed directly to the signature step'
+    :'please ask the user to share their passport using the paperclip icon, and reassure them in the same message that it is encrypted in transit, used only to verify their identity, and never stored';
+  const resp=await callAPI(`Medical questionnaire complete — ${summary} — ${nextStep}`);
   if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
 }
 
@@ -1151,8 +1158,7 @@ async function submitSig(){
   addUser('Signature submitted');
   const resp=await callAPI("The user has signed — give a brief warm acknowledgement, then we will show the payment screen. Emit action none.");
   if(resp.message&&resp.message.trim())addBot(resp.message);
-  await delay(200);
-  renderPayment();
+  if(!window._lastFailed){await delay(200);renderPayment();}
   S.busy=false;setActive(true);
 }
 
