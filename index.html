@@ -425,15 +425,15 @@ show_investment_quote  optional data:{"premium":0,"term":0,"fund":"aggressive|ba
 
 show_illustration → show a year-by-year policy table; prerequisite: a quote has been accepted
 
-show_medical → activate the medical collection stage; the height and weight panel opens automatically — your message should contain only the honest-answers note, e.g. "Just so you know, honest answers here really matter — any undisclosed condition can affect your coverage or lead to a claim being declined. Nothing here is judged, it just needs to be accurate"; prerequisite: illustration agreed
+show_medical → activate the medical collection stage; the height and weight panel opens automatically — your message should contain only the honest-answers note, e.g. "Just so you know, honest answers here really matter — any undisclosed condition can affect your coverage or lead to a claim being declined. Nothing here is judged, it just needs to be accurate — and everything you share is confidential, used only for underwriting your policy"; prerequisite: illustration agreed
 
-show_kyc → show the KYC panel collecting nationality, residential address, and politically exposed person (PEP) status; the panel handles all input so your message should be a brief one-liner introducing the step; prerequisite: passport verified; if the user wants to change any KYC detail before signing, emit show_kyc again — the panel reopens prefilled
+show_kyc → show the KYC panel collecting nationality, residential address, and politically exposed person (PEP) status; the panel handles all input so your message should be a brief one-liner introducing the step and noting these details are required for identity and AML verification; prerequisite: passport verified; if the user wants to change any KYC detail before signing, emit show_kyc again — the panel reopens prefilled
 
-show_signature → show a signature canvas; prerequisites: medical complete AND passport verified AND KYC complete
+show_signature → show a signature canvas; your message must tell the user to draw their signature on the canvas or simply type their full name below it; prerequisites: medical complete AND passport verified AND KYC complete
 
 show_nominee → show the beneficiary panel; prerequisite: payment complete
 
-prefill_info  data:{"name":"","email":"","dob":"DD/MM/YYYY","gender":"male|female","income":0,"smoker":false,"nationality":""} → silently store personal fields learned from conversation or a document; include only known fields; emit incrementally as each value is confirmed; for nationality always use the English country name (e.g. India, United Arab Emirates) — never a demonym like Indian or Emirati, since the value must match a fixed country dropdown
+prefill_info  data:{"name":"","email":"","dob":"DD/MM/YYYY","gender":"male|female","income":0,"smoker":false,"nationality":""} → silently store personal fields learned from conversation or a document; include only known fields; emit incrementally as each value is confirmed; for nationality always use the English demonym exactly as a passport would print it (e.g. Indian, Emirati, British) — never the country name, since the value must match a fixed nationality dropdown
 
 prefill_quote  data:{"cover":0,"term":0,"premium":0,"fund":"..."} → adjust the active quote card's values; include only changed fields
 
@@ -470,7 +470,7 @@ Ask naturally, one or two fields at a time — start with name. When asking for 
 Medical details:
 Emit show_medical first — the height and weight panel opens automatically, so do not ask for height and weight conversationally. Your message should only contain the honest-answers note. Once you have height and weight, emit prefill_medical with those values and continue asking the remaining questions one at a time, using EXACTLY these phrasings: (1) "Do you drink alcohol?" with chips ["None","Occasionally","Regularly"], (2) "Do you have any ongoing health conditions — things like diabetes, high blood pressure, or asthma?" with chips ["Yes","No"], (3) "Have you been hospitalised for any major surgery or illness in the last 5 years?" with chips ["Yes","No"], (4) "Do you take any medication regularly?" with chips ["Yes","No"], (5) "Has anyone in your immediate family had cancer, heart disease, or a stroke?" with chips ["Yes","No"], (6) "Last one — does your occupation involve any hazardous activities, like adventure sports and off-shore oil rigs?" with chips ["Yes","No"]. All toggle fields default to none/no — if the user skips one, move on
 
-Follow-ups: questions 2 to 5 have a FIXED follow-up when answered Yes. Store the yes via prefill_medical AND ask the follow-up in the same response, using EXACTLY this text with show_chips {"options":["Actually, No"],"upload":true} — except question 5, which uses {"options":["Actually, No"]} with no upload:
+Follow-ups: questions 2 to 5 have a FIXED follow-up when answered Yes. Store the yes via prefill_medical AND ask the follow-up in the same response, using EXACTLY this text with show_chips {"options":["Actually, no"],"upload":true} — except question 5, which uses {"options":["Actually, no"]} with no upload:
 (2) "Tell us which condition and since when. You can also attach any supporting documents you have — latest bloodwork, medical report, etc"
 (3) "Tell us about the injury or illness, when it happened, and how long you were hospitalised. You can also attach any supporting documents — discharge summary, medical report, etc"
 (4) "Tell us what you take and why. You can ignore supplements — whey protein, multivitamins, etc. Feel free to attach a prescription or medical report if handy"
@@ -478,7 +478,7 @@ Follow-ups: questions 2 to 5 have a FIXED follow-up when answered Yes. Store the
 
 When the user replies with details, typed or via document: emit prefill_medical storing a concise summary in the matching detail field (ccDetail, hospDetail, medicDetail, fhistDetail) and ask the next question with its chips in the same response. If a document was shared, extract the relevant facts into the summary and briefly acknowledge what you found
 
-Escape hatch: if the user taps or types "Actually, No" or otherwise retracts, emit prefill_medical setting that field back to "no" and its detail field to "", then move straight to the next question — never argue, never re-ask
+Escape hatch: if the user taps or types "Actually, no" or otherwise retracts, emit prefill_medical setting that field back to "no" and its detail field to "", then move straight to the next question — never argue, never re-ask
 
 Detail fields never gate completion — the 8 core fields alone trigger submission. Once all six questions have been asked and answered or skipped, emit a final prefill_medical containing ALL 8 fields — height, weight, alc, cc, hosp, medic, fhist, haz — with their confirmed values or safe defaults. This single batch signals completion and triggers automatic submission. Do not emit confirm_active_card for medical; the complete prefill_medical is the trigger
 
@@ -808,6 +808,7 @@ function handleShowDobInput(){
     <input class="fi" id="dob_inp" type="date" min="${minD}" max="${maxD}" oninput="checkDob(this)" onchange="checkDob(this)">
     <button class="pnl-sub" id="dob_btn" disabled onclick="submitDob()">Confirm ${ic.arrow}</button>
   </div>`);
+  requestAnimationFrame(()=>G('dob_inp')?.focus());
 }
 
 function checkDob(el){
@@ -843,6 +844,7 @@ function handleShowIncomeInput(){
     </div>
     <button class="pnl-sub" id="inc_btn" disabled onclick="submitIncome()">Confirm ${ic.arrow}</button>
   </div>`);
+  requestAnimationFrame(()=>G('inc_inp')?.focus());
 }
 
 async function submitIncome(){
@@ -867,6 +869,7 @@ function handleShowAmountInput(){
     <button class="pnl-sub" id="amt_btn" disabled onclick="submitAmount()" style="margin-bottom:0">Confirm ${ic.arrow}</button>
     <button class="gbtn" style="margin-bottom:10px" onclick="pickChip('Actually, none')">Actually, none</button>
   </div>`);
+  requestAnimationFrame(()=>G('amt_inp')?.focus());
 }
 
 async function submitAmount(){
@@ -887,6 +890,7 @@ function handleShowEmailInput(){
     <input class="fi" id="email_inp" type="email" placeholder="your@email.com" oninput="validateEmailInput(this)">
     <button class="pnl-sub" id="email_btn" disabled onclick="submitEmail()">Confirm ${ic.arrow}</button>
   </div>`);
+  requestAnimationFrame(()=>G('email_inp')?.focus());
 }
 
 function validateEmailInput(el){
@@ -910,7 +914,6 @@ async function submitEmail(){
 function handleShowUploadPrompt(){
   showPanel(`<div class="pnl" id="upl_pnl">
     <button class="pnl-sub" style="margin-top:0" onclick="G('chat-file').click()">${ic.doc} Upload document</button>
-    <div class="phi" style="margin-top:0">${ic.lock} Encrypted in transit — used only for verification, never stored</div>
   </div>`);
 }
 
@@ -920,7 +923,6 @@ function handleShowChips(data){
   const chips=opts.length?`<div class="chipbar"><div class="chips">${opts.map(raw=>{const o=String(raw).replace(/[<>]/g,'');const c=o.trim().length===1;return`<button class="chip${c?' circle':''}" onclick="pickChip(${JSON.stringify(o).replace(/"/g,'&quot;')})">${esc(o)}</button>`;}).join('')}</div></div>`:'';
   const up=data?.upload?`<div class="pnl" id="upl_pnl" style="padding-top:0">
     <button class="pnl-sub" style="margin-top:0" onclick="G('chat-file').click()">${ic.doc} Attach document</button>
-    <div class="phi" style="margin-top:0">${ic.lock} Optional — speeds up underwriting review</div>
   </div>`:'';
   showPanel(chips+up);
 }
@@ -1157,7 +1159,7 @@ async function acceptProtQ(){
   const {cover,term}=S.q,mp=calcProtPremium(cover,getAge(S.u.dob),term,S.u.smoker,S.u.gender);
   const wasSilent=_silentConfirm;_silentConfirm=false;
   S.q.premium=mp;lockCard('prot_card');S.stage='quote_accepted';S.busy=true;setActive(false);
-  if(!wasSilent)addUser(`Protection plan confirmed — ${fmt(cover)} cover, ${term}-year term, ${fmt(mp)}/month`);
+  if(!wasSilent)addUser(`Protection plan confirmed — ${fmt(cover)} cover &nbsp;·&nbsp; ${term}-year term &nbsp;·&nbsp; ${fmt(mp)}/month`);
   const resp=await callAPI(`I've accepted the Protection Plan — cover: ${fmt(cover)}, term: ${term} years, premium: ${fmt(mp)}/month — please show me the policy illustration`);
   if(resp.message&&resp.message.trim())addBot(resp.message);await executeActions(resp);ensureProgress();S.busy=false;setActive(true);
 }
@@ -1192,7 +1194,7 @@ function upSavQ(){
 async function acceptSavQ(){
   const {premium,term}=S.q;const wasSilent=_silentConfirm;_silentConfirm=false;
   lockCard('sav_card');S.stage='quote_accepted';S.busy=true;setActive(false);
-  if(!wasSilent)addUser(`Savings plan confirmed — ${fmt(premium)}/month, ${term}-year term`);
+  if(!wasSilent)addUser(`Savings plan confirmed — ${fmt(premium)}/month &nbsp;·&nbsp; ${term}-year term`);
   const resp=await callAPI(`I've accepted the savings plan — premium: ${fmt(premium)}/month, term: ${term} years — please show me the illustration`);
   if(resp.message&&resp.message.trim())addBot(resp.message);await executeActions(resp);ensureProgress();S.busy=false;setActive(true);
 }
@@ -1239,7 +1241,7 @@ async function acceptInvQ(){
   const {premium,term,fund}=S.q,mat=calcInvMaturity(premium,term,fund);
   const wasSilent=_silentConfirm;_silentConfirm=false;
   lockCard('inv_card');S.stage='quote_accepted';S.busy=true;setActive(false);
-  if(!wasSilent)addUser(`Investment plan confirmed — ${fmt(premium)}/month, ${term} yrs, ${FUNDS[fund].label} Fund`);
+  if(!wasSilent)addUser(`Investment plan confirmed — ${fmt(premium)}/month &nbsp;·&nbsp; ${term} yrs &nbsp;·&nbsp; ${FUNDS[fund].label} Fund`);
   const resp=await callAPI(`I've accepted the investment plan — premium: ${fmt(premium)}/month, term: ${term} years, fund: ${FUNDS[fund].label} (${FUNDS[fund].rate}%), projected maturity: ${fmt(mat)} — please show the illustration`);
   if(resp.message&&resp.message.trim())addBot(resp.message);await executeActions(resp);ensureProgress();S.busy=false;setActive(true);
 }
@@ -1283,9 +1285,9 @@ function handleShowHeightWeightInput(){
       <div class="bmir"><input class="fi" id="hw_h" type="number" placeholder="Height" min="100" max="250" oninput="checkHW()"><div class="bmib">cm</div></div>
       <div class="bmir"><input class="fi" id="hw_w" type="number" placeholder="Weight" min="30" max="300" oninput="checkHW()"><div class="bmib">kg</div></div>
     </div>
-    <div class="phi" style="margin-top:2px;margin-bottom:8px">${ic.lock} Confidential — used only for underwriting your policy</div>
     <button class="pnl-sub" id="hw_btn" disabled onclick="submitHW()">Confirm ${ic.arrow}</button>
   </div>`);
+  requestAnimationFrame(()=>G('hw_h')?.focus());
 }
 
 function checkHW(){
@@ -1329,9 +1331,10 @@ async function submitMed(){
 
 // ── KYC — panel ──
 const COUNTRIES=["Afghanistan","Albania","Algeria","Andorra","Angola","Antigua and Barbuda","Argentina","Armenia","Australia","Austria","Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan","Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi","Cabo Verde","Cambodia","Cameroon","Canada","Central African Republic","Chad","Chile","China","Colombia","Comoros","Congo","Costa Rica","Croatia","Cuba","Cyprus","Czechia","Democratic Republic of the Congo","Denmark","Djibouti","Dominica","Dominican Republic","Ecuador","Egypt","El Salvador","Equatorial Guinea","Eritrea","Estonia","Eswatini","Ethiopia","Fiji","Finland","France","Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea","Guinea-Bissau","Guyana","Haiti","Honduras","Hungary","Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy","Ivory Coast","Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kiribati","Kuwait","Kyrgyzstan","Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania","Luxembourg","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Marshall Islands","Mauritania","Mauritius","Mexico","Micronesia","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar","Namibia","Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Korea","North Macedonia","Norway","Oman","Pakistan","Palau","Palestine","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal","Qatar","Romania","Russia","Rwanda","Saint Kitts and Nevis","Saint Lucia","Saint Vincent and the Grenadines","Samoa","San Marino","Sao Tome and Principe","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands","Somalia","South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland","Syria","Taiwan","Tajikistan","Tanzania","Thailand","Timor-Leste","Togo","Tonga","Trinidad and Tobago","Tunisia","Turkey","Turkmenistan","Tuvalu","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Uruguay","Uzbekistan","Vanuatu","Vatican City","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe"];
-function countrySelect(id,label,val){
+const NATIONALITIES=["Afghan","Albanian","Algerian","American","Andorran","Angolan","Antiguan","Argentine","Armenian","Australian","Austrian","Azerbaijani","Bahamian","Bahraini","Bangladeshi","Barbadian","Belarusian","Belgian","Belizean","Beninese","Bhutanese","Bolivian","Bosnian","Botswanan","Brazilian","British","Bruneian","Bulgarian","Burkinabe","Burundian","Cabo Verdean","Cambodian","Cameroonian","Canadian","Central African","Chadian","Chilean","Chinese","Colombian","Comoran","Congolese","Costa Rican","Croatian","Cuban","Cypriot","Czech","Danish","Djiboutian","Dominican","Dutch","Ecuadorian","Egyptian","Emirati","Equatorial Guinean","Eritrean","Estonian","Ethiopian","Fijian","Filipino","Finnish","French","Gabonese","Gambian","Georgian","German","Ghanaian","Greek","Grenadian","Guatemalan","Guinean","Guyanese","Haitian","Honduran","Hungarian","Icelandic","Indian","Indonesian","Iranian","Iraqi","Irish","Israeli","Italian","Ivorian","Jamaican","Japanese","Jordanian","Kazakhstani","Kenyan","Kuwaiti","Kyrgyz","Lao","Latvian","Lebanese","Liberian","Libyan","Liechtensteiner","Lithuanian","Luxembourgish","Macedonian","Malagasy","Malawian","Malaysian","Maldivian","Malian","Maltese","Marshallese","Mauritanian","Mauritian","Mexican","Micronesian","Moldovan","Monegasque","Mongolian","Montenegrin","Moroccan","Mozambican","Myanmar","Namibian","Nauruan","Nepalese","New Zealander","Nicaraguan","Nigerian","Nigerien","North Korean","Norwegian","Omani","Pakistani","Palauan","Palestinian","Panamanian","Papua New Guinean","Paraguayan","Peruvian","Polish","Portuguese","Qatari","Romanian","Russian","Rwandan","Saint Lucian","Salvadoran","Samoan","Sammarinese","Sao Tomean","Saudi","Senegalese","Serbian","Seychellois","Sierra Leonean","Singaporean","Slovak","Slovenian","Solomon Islander","Somali","South African","South Korean","South Sudanese","Spanish","Sri Lankan","Sudanese","Surinamese","Swazi","Swedish","Swiss","Syrian","Taiwanese","Tajik","Tanzanian","Thai","Timorese","Togolese","Tongan","Trinidadian","Tunisian","Turkish","Turkmen","Tuvaluan","Ugandan","Ukrainian","Uruguayan","Uzbek","Vanuatuan","Venezuelan","Vietnamese","Yemeni","Zambian","Zimbabwean"];
+function countrySelect(id,label,val,list){
   const v=(val||'').trim().toLowerCase();
-  return `<select class="fi" id="${id}" required onchange="checkKyc()"><option value="">${label}</option>${COUNTRIES.map(c=>`<option${c.toLowerCase()===v?' selected':''}>${c}</option>`).join('')}</select>`;
+  return `<select class="fi" id="${id}" required onchange="checkKyc()"><option value="">${label}</option>${(list||COUNTRIES).map(c=>`<option${c.toLowerCase()===v?' selected':''}>${c}</option>`).join('')}</select>`;
 }
 
 function renderKyc(){
@@ -1341,14 +1344,13 @@ function renderKyc(){
   const k=S.kyc;
   showPanel(`<div class="pnl">
     <div class="flds">
-      ${countrySelect('kyc_nat','Nationality',k.nationality)}
+      ${countrySelect('kyc_nat','Nationality',k.nationality,NATIONALITIES)}
       <input class="fi" id="kyc_house" type="text" placeholder="House / flat number" value="${esc(k.house)}" oninput="checkKyc()">
       <input class="fi" id="kyc_street" type="text" placeholder="Street name" value="${esc(k.street)}" oninput="checkKyc()">
       <input class="fi" id="kyc_city" type="text" placeholder="City" value="${esc(k.city)}" oninput="checkKyc()">
       ${countrySelect('kyc_country','Country of residence',k.country)}
     </div>
     <label class="decl" style="margin:12px 0 0"><input type="checkbox" id="kyc_pep"${k.pep?' checked':''}> I am a politically exposed person (PEP), or an immediate family member or close associate of one</label>
-    <div class="phi" style="margin-top:8px;margin-bottom:2px">${ic.lock} Required for identity and AML verification</div>
     <button class="pnl-sub" id="kyc_btn" disabled onclick="submitKyc()">Confirm details ${ic.arrow}</button>
   </div>`);
   checkKyc();
@@ -1382,7 +1384,6 @@ function renderSignature(){
     <div class="ctag">Digital signature</div>
     <p style="font-size:12px;color:var(--t2);margin-bottom:12px;line-height:1.6">I declare that all information provided in this application is true, accurate, and complete to the best of my knowledge. I understand that any misrepresentation, non-disclosure, or inaccuracy may result in additional premium loading, cancellation of the policy, or rejection of claims</p>
     <canvas id="sigc"></canvas>
-    <div class="sgh">Draw your signature above — or type it below</div>
     <input class="fi" id="sig_typed" type="text" placeholder="Type your full name to sign" style="margin-top:8px" oninput="typeSig(this.value)">
     <button class="btn" onclick="submitSig()">Submit signature ${ic.arrow}</button>
     <button class="gbtn" onclick="clearSig()">Clear</button>
@@ -1424,7 +1425,7 @@ async function submitSig(){
   lockCard('sig_card');S.stage='signed';
   S.busy=true;setActive(false);
   addUser('Signature submitted');
-  const resp=await callAPI("The user has signed — give a brief warm acknowledgement, then we will show the payment screen. Emit action none.");
+  const resp=await callAPI("The user has signed — give a brief warm acknowledgement and introduce the payment step in the same message, telling the user: for compliance the first premium must be paid from the policyholder's own card, and by paying they are authorising this card to be charged the monthly premium every 30 days. Emit no actions");
   if(resp.message&&resp.message.trim())addBot(resp.message);
   if(!window._lastFailed){await delay(200);renderPayment();}
   S.busy=false;setActive(true);
@@ -1437,17 +1438,15 @@ function renderPayment(){
   let amount=S.q.premium;
   if(S.u.plan==='protection')amount=calcProtPremium(S.q.cover,getAge(S.u.dob),S.q.term,S.u.smoker,S.u.gender);
   showPanel(`<div class="pnl">
-    <div class="cnets"><div class="cnet">VISA</div><div class="cnet">MC</div><div class="cnet">AMEX</div></div>
     <div class="payamt"><span class="payamt-l">First month premium</span><span class="payamt-v">${fmt(amount)}</span></div>
-    <div class="phi" style="margin-top:0;margin-bottom:10px">${ic.lock} For compliance, payment must be made using the policyholder's own card</div>
     <div class="flds">
       <input class="fi" id="py_name" type="text" value="${esc(S.u.name)}" readonly style="opacity:.65;cursor:not-allowed" title="For compliance, the premium must be paid by the policyholder">
       <input class="fi" id="py_card" type="tel" placeholder="Card number" maxlength="19" oninput="fmtCard(this)">
       <div class="pay2"><input class="fi" id="py_exp" type="tel" placeholder="MM / YY" maxlength="7" oninput="fmtExp(this)"><input class="fi" id="py_cvv" type="tel" placeholder="CVV" maxlength="4" style="flex:0 0 80px"></div>
     </div>
-    <div class="phi">${ic.lock} Secure payment &nbsp;·&nbsp; Demo mode — use 4242 4242 4242 4242</div>
     <button class="pnl-sub" id="pay_btn" onclick="submitPay('${fmt(amount)}')">Pay ${fmt(amount)} ${ic.arrow}</button>
   </div>`);
+  requestAnimationFrame(()=>G('py_card')?.focus());
 }
 
 function fmtCard(el){let v=el.value.replace(/\D/g,'').slice(0,16);el.value=v.match(/.{1,4}/g)?.join(' ')||v;}
@@ -1489,6 +1488,7 @@ function renderNominee(){
     <button class="pnl-sub" id="nom_btn" disabled onclick="submitNominee()">Confirm nominees ${ic.arrow}</button>
   </div>`);
   addNomRow(100);
+  requestAnimationFrame(()=>G('nom_n_0')?.focus());
 }
 
 function addNomRow(initPct){
