@@ -39,7 +39,11 @@ body{height:100%;background:var(--bg);color:var(--tx);font-family:'Inter',ui-san
 #panel{background:var(--s1);border-top:1px solid var(--bd);overflow-y:auto;max-height:55vh;display:none}
 #panel::-webkit-scrollbar{width:3px}
 #panel::-webkit-scrollbar-thumb{background:var(--s4);border-radius:2px}
-.chips{display:flex;flex-wrap:wrap;gap:8px;padding:12px 14px}
+.chipbar{display:flex;align-items:center;gap:10px;padding:12px 14px}
+.chips-lbl{font-size:11px;font-weight:500;color:var(--t3);flex-shrink:0;white-space:nowrap}
+.chips{display:flex;gap:8px;overflow-x:auto;flex:1;min-width:0;padding:2px 0;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{white-space:nowrap;flex-shrink:0}
 .chip{padding:9px 15px;background:var(--s2);border:1.5px solid var(--bd);border-radius:20px;font:500 13px/1 'Inter',ui-sans-serif,sans-serif;color:var(--t2);cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:7px}
 .chip.circle{width:36px;height:36px;padding:0;border-radius:50%;justify-content:center}
 .chip:hover{border-color:var(--a);color:var(--ad);background:var(--aa)}
@@ -140,7 +144,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 .nom-pct{position:relative;flex:0 0 78px}
 .nom-pct .fi{padding-right:22px;text-align:right}
 .nom-pct-sym{position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--t2);font-size:12px;pointer-events:none;font-weight:500}
-.nom-spl select.fi{-webkit-appearance:auto;appearance:auto}
+select.fi:invalid{color:var(--t3)}
 .nom-bar{height:4px;background:var(--s4);border-radius:2px;margin:13px 0 8px;overflow:hidden}
 .nom-bar-fill{height:100%;border-radius:2px;background:var(--a);transition:width .35s,background .2s}
 .nom-stats{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:4px}
@@ -356,11 +360,11 @@ const STATIC_PROMPT=(()=>{const staticPart=`You are Life Guard, a warm and knowl
 
 Think of yourself as an advisor who has a powerful set of tools. You reach for them when the conversation calls for it, not because a checklist says to. You can answer questions, explain jargon, analyse a policy document someone shares, compare a competitor's plan, summarise numbers for a family member, help someone think through how much cover they need — and when the moment is right, present a quote, run the illustration, or guide the purchase through to completion
 
-ALWAYS respond ONLY in valid JSON — no extra text, no markdown:
-{"message":"your conversational text","action":{"type":"ACTION_TYPE","data":{}}}
+ALWAYS respond ONLY in valid JSON — exactly ONE JSON object, no extra text, no markdown, nothing before or after it:
+{"message":"your conversational text","actions":[{"type":"ACTION_TYPE","data":{}}]}
 
 ── YOUR TOOLS ──────────────────────────────────────────────────
-Emit exactly one action per response. Choose the one that best serves the conversation.
+The actions array executes in order. Include as many silent data actions as needed (prefill_info, prefill_medical, prefill_quote, prefill_nominee, passport_verified) plus AT MOST ONE visible action (any show_*, select_plan, confirm_active_card, reset_to_plan_selection, scroll_to_card). List data actions before the visible one, EXCEPT prefill_nominee and prefill_quote, which must come after the show action that renders their card. Whenever the user answers a question, store the answer AND ask the next question in the SAME response — e.g. "actions":[{"type":"prefill_info","data":{"smoker":false}},{"type":"show_chips","data":{"options":["Confirmed"]}}]. Never drop a prefill because another action is also needed. If no action is needed, use "actions":[]
 
 none → conversational reply only
 
@@ -383,7 +387,7 @@ show_signature → show a signature canvas; prerequisites: medical complete AND 
 
 show_nominee → show the beneficiary panel; prerequisite: payment complete
 
-prefill_info  data:{"name":"","email":"","dob":"DD/MM/YYYY","gender":"male|female","income":0,"smoker":false,"nationality":""} → silently store personal fields learned from conversation or a document; include only known fields; emit incrementally as each value is confirmed
+prefill_info  data:{"name":"","email":"","dob":"DD/MM/YYYY","gender":"male|female","income":0,"smoker":false,"nationality":""} → silently store personal fields learned from conversation or a document; include only known fields; emit incrementally as each value is confirmed; for nationality always use the English country name (e.g. India, United Arab Emirates) — never a demonym like Indian or Emirati, since the value must match a fixed country dropdown
 
 prefill_quote  data:{"cover":0,"term":0,"premium":0,"fund":"..."} → adjust the active quote card's values; include only changed fields
 
@@ -415,10 +419,10 @@ show_chips  data:{"options":["option1","option2",...]} → show tappable quick-r
 Collect all required information through conversation — never show a form. Check the context above before asking any question; never ask for something already captured.
 
 Personal details (name, email, DOB, income):
-Ask naturally, one or two fields at a time — start with name. When asking for income, emit show_income_input alongside your message — do not mention USD, the panel handles the currency and format. When asking for DOB, emit show_dob_input alongside your message — the panel handles the input, do not specify a format. When asking for email, emit show_email_input alongside your message. Emit prefill_info as each value is confirmed. Once all 5 required fields (name, email, DOB, gender, income) AND smoker status are confirmed, show a brief summary of all collected details and invite confirmation — e.g. "Here's what I have: [summary]. Tap Confirmed when you're happy and I'll lock those in" — and emit show_chips with {"options":["Confirmed"]} alongside the summary so the user can confirm with a single tap; if anything is wrong they will simply type the correction, so do not add a second chip for corrections. Only emit confirm_active_card when the user confirms. Do not auto-submit. If the user gives multiple fields at once, emit prefill_info with all of them, then continue to the next missing field or the smoker question as appropriate. Gender must be collected — if it can be confidently inferred from conversation (e.g. "my wife", "she wants a policy", pronouns, possessives), emit prefill_info with the inferred value and skip asking; otherwise ask after DOB using show_chips with ["Male","Female"] and emit prefill_info immediately after. Smoker status must be confirmed before emitting confirm_active_card. If clearly stated or strongly implied in conversation (e.g. "non-smoker wife", "I've never smoked", "she doesn't smoke"), emit prefill_info with the inferred value immediately and skip asking; otherwise ask explicitly with a natural disclaimer — e.g. "honest answers here ensure seamless claims down the line". Once confirmed by answer or inference, emit prefill_info with the smoker field — this is required for the form to submit
+Ask naturally, one or two fields at a time — start with name. When asking for income, emit show_income_input alongside your message — do not mention USD, the panel handles the currency and format. When asking for DOB, emit show_dob_input alongside your message — the panel handles the input, do not specify a format. When asking for email, emit show_email_input alongside your message. Emit prefill_info as each value is confirmed. Once all 5 required fields (name, email, DOB, gender, income) AND smoker status are confirmed, show a brief summary of all collected details and invite confirmation — e.g. "Here's what I have: [summary]. Are the details good to go?" — and emit show_chips with {"options":["Confirmed"]} alongside the summary so the user can confirm with a single tap; if anything is wrong they will simply type the correction, so do not add a second chip for corrections. Only emit confirm_active_card when the user confirms. Do not auto-submit. If the user gives multiple fields at once, emit prefill_info with all of them, then continue to the next missing field or the smoker question as appropriate. Gender must be collected — if it can be confidently inferred from conversation (e.g. "my wife", "she wants a policy", pronouns, possessives), emit prefill_info with the inferred value and skip asking; otherwise ask after DOB using show_chips with ["Male","Female"], phrased with a light touch — e.g. "And now, time for the gender reveal" — never a blunt "Are you male or female", since the chips already display the options; store the answer via prefill_info in the same response as your next question. Smoker status must be confirmed before emitting confirm_active_card. If clearly stated or strongly implied in conversation (e.g. "non-smoker wife", "I've never smoked", "she doesn't smoke"), emit prefill_info with the inferred value immediately and skip asking; otherwise ask explicitly with a natural disclaimer — e.g. "honest answers here ensure seamless claims down the line". Once confirmed by answer or inference, emit prefill_info with the smoker field — this is required for the form to submit
 
 Medical details:
-Emit show_medical first — the height and weight panel opens automatically, so do not ask for height and weight conversationally. Your message should only contain the honest-answers note. Once you have height and weight, emit prefill_medical with those values and continue asking the remaining questions one at a time: (1) alcohol consumption, (2) any chronic conditions, (3) hospitalisation in the last 5 years, (4) regular medication, (5) family history of cancer, heart disease, or stroke, (6) hazardous activities. All toggle fields default to none/no — if the user skips one, move on. Once all six questions have been asked and answered or skipped, emit a final prefill_medical containing ALL 8 fields — height, weight, alc, cc, hosp, medic, fhist, haz — with their confirmed values or safe defaults. This single batch signals completion and triggers automatic submission. Do not emit confirm_active_card for medical; the complete prefill_medical is the trigger
+Emit show_medical first — the height and weight panel opens automatically, so do not ask for height and weight conversationally. Your message should only contain the honest-answers note. Once you have height and weight, emit prefill_medical with those values and continue asking the remaining questions one at a time, using EXACTLY these phrasings: (1) "Do you drink alcohol?" with chips ["None","Occasionally","Regularly"], (2) "Do you have any ongoing health conditions — things like diabetes, high blood pressure, or asthma?" with chips ["Yes","No"], (3) "Have you been hospitalised for any major surgery or illness in the last 5 years?" with chips ["Yes","No"], (4) "Do you take any medication regularly?" with chips ["Yes","No"], (5) "Has anyone in your immediate family had cancer, heart disease, or a stroke?" with chips ["Yes","No"], (6) "Last one — does your occupation involve any hazardous activities, like adventure sports and off-shore oil rigs?" with chips ["Yes","No"]. All toggle fields default to none/no — if the user skips one, move on. Once all six questions have been asked and answered or skipped, emit a final prefill_medical containing ALL 8 fields — height, weight, alc, cc, hosp, medic, fhist, haz — with their confirmed values or safe defaults. This single batch signals completion and triggers automatic submission. Do not emit confirm_active_card for medical; the complete prefill_medical is the trigger
 
 ── NEEDS ASSESSMENT ────────────────────────────────────────────
 Run this once, immediately after personal details are confirmed (stage info_collected). Ask the three questions one at a time across separate turns — never bundle them into one message:
@@ -472,7 +476,8 @@ Protection: premium is only known at acceptance. If the accepted premium exceeds
 
 ── CONFIRMATION DETECTION ───────────────────────────────────────
 When activeCard is set and is not plan_card, nom_card, sig_card, pay_card, or kyc_card — check your immediately preceding message first:
-- It contained a yes/no question → treat yes, no, yeah, nope as answering that question; do NOT emit confirm_active_card regardless of activeCard
+- It contained a yes/no question seeking new information (smoker, loans, medical, etc.) → treat yes, no, yeah, nope as answering that question; do NOT emit confirm_active_card regardless of activeCard
+- It was a confirmation request you made (e.g. the details summary asking if everything is good to go) → an affirmative reply (Confirmed, yes, looks good) IS the confirmation → emit confirm_active_card; a negative reply means something needs fixing → ask what to change
 - It contained no question AND the user's message is solely a confirmation word (confirmed, yes, sure, ok, proceed, go ahead, looks good, fine, yep, absolutely) → emit confirm_active_card
 - Confirmation word plus a question or qualifier → answer the question; action none
 - plan_card active → ask the user to pick from the options above the chat bar
@@ -531,24 +536,43 @@ async function callAPI(userMsg,imgData=null){
     const res=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const data=await res.json();
     if(!res.ok)throw new Error(data.error||'API error');
-    const text=data.content?.[0]?.text||'';
+    const text=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('')||'';
     S.conv.push({role:'assistant',content:text});
     return parseResp(text);
   }catch(e){
     S.conv.pop();
     window._lastFailed={msg:userMsg,img:imgData};
-    showPanel(`<div class="chips"><button class="chip" onclick="retryLast()">&#8635; Retry</button></div>`);
+    showPanel(`<div class="chipbar"><div class="chips"><button class="chip" onclick="retryLast()">&#8635; Retry</button></div></div>`);
     return{message:"I'm having a little trouble connecting — tap Retry below and we'll pick up exactly where we left off",action:{type:'none'}};
   }
   finally{showTyping(false);}
 }
 
+function extractFirstJson(text){
+  const start=text.indexOf('{');if(start<0)return null;
+  let depth=0,inStr=false,esc2=false;
+  for(let i=start;i<text.length;i++){
+    const ch=text[i];
+    if(inStr){if(esc2)esc2=false;else if(ch==='\\')esc2=true;else if(ch==='"')inStr=false;}
+    else if(ch==='"')inStr=true;
+    else if(ch==='{')depth++;
+    else if(ch==='}'){depth--;if(depth===0){try{return JSON.parse(text.slice(start,i+1));}catch{return null;}}}
+  }
+  return null;
+}
 function parseResp(text){
-  let parsed;
-  try{parsed=JSON.parse(text);}
-  catch{const m=text.match(/\{[\s\S]*\}/);if(m)try{parsed=JSON.parse(m[0]);}catch{}if(!parsed)return{message:text,action:{type:'none'}};}
+  let parsed=null;
+  try{parsed=JSON.parse(text);}catch{parsed=extractFirstJson(text);}
+  if(!parsed){
+    const m=text.match(/"message"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+    let msg=text;
+    if(m)try{msg=JSON.parse('"'+m[1]+'"');}catch{msg=m[1];}
+    else if(text.trimStart().startsWith('{'))msg="Sorry, something glitched on my end — could you say that again?";
+    return{message:msg,action:{type:'none'}};
+  }
   if(parsed.message&&typeof parsed.message==='string'&&parsed.message.trimStart().startsWith('{')){
-    try{const inner=JSON.parse(parsed.message);if(inner.message!==undefined&&inner.action!==undefined)return inner;}catch{}
+    const inner=extractFirstJson(parsed.message);
+    if(inner&&(inner.message!==undefined||inner.actions!==undefined||inner.action!==undefined))return inner;
   }
   return parsed;
 }
@@ -559,7 +583,7 @@ async function retryLast(){
   S.busy=true;setActive(false);
   const resp=await callAPI(msg,img);
   if(resp.message&&resp.message.trim())addBot(resp.message);
-  await executeAction(resp.action);
+  await executeActions(resp);
   ensureProgress();
   S.busy=false;setActive(true);
 }
@@ -630,9 +654,13 @@ G('chat-file').addEventListener('change',function(){
 G('attach-clear').addEventListener('click',clearAttachment);
 
 // ── Flow engine ──
+async function executeActions(resp){
+  const list=Array.isArray(resp?.actions)?resp.actions:(resp?.action?[resp.action]:[]);
+  for(const a of list)await executeAction(a);
+}
 async function executeAction(action){
   if(!action||action.type==='none')return;
-  await delay(360);
+  if(!String(action.type).startsWith('prefill_'))await delay(360);
   switch(action.type){
     case 'show_plan_selector':    renderPlans();break;
     case 'show_protection_quote': if(action.data?.cover!==undefined)S.q.cover=action.data.cover;if(action.data?.term!==undefined)S.q.term=action.data.term;renderProtQuote();break;
@@ -648,7 +676,7 @@ async function executeAction(action){
     case 'prefill_info':          prefillInfoCard(action.data);break;
     case 'prefill_quote':         handlePrefillQuote(action.data);break;
     case 'prefill_medical':       handlePrefillMedical(action.data);break;
-    case 'confirm_active_card':   handleConfirmActiveCard();break;
+    case 'confirm_active_card':   await handleConfirmActiveCard();break;
     case 'passport_verified':     await handlePassportVerified();break;
     case 'reset_to_plan_selection': editCard('plan_card','start',true);break;
     case 'scroll_to_card': {const id=action.data?.id||S.activeCard;const c=G(id);if(c)c.scrollIntoView({behavior:'smooth',block:'nearest'});}break;
@@ -686,7 +714,7 @@ async function submitDob(){
   S.busy=true;setActive(false);
   const resp=await callAPI(dob);
   if(resp.message&&resp.message.trim())addBot(resp.message);
-  await executeAction(resp.action);
+  await executeActions(resp);
   ensureProgress();
   S.busy=false;setActive(true);
 }
@@ -715,7 +743,7 @@ async function submitIncome(){
   S.busy=true;setActive(false);
   const resp=await callAPI(String(val));
   if(resp.message&&resp.message.trim())addBot(resp.message);
-  await executeAction(resp.action);
+  await executeActions(resp);
   ensureProgress();
   S.busy=false;setActive(true);
 }
@@ -738,7 +766,7 @@ async function submitAmount(){
   S.busy=true;setActive(false);
   const resp=await callAPI(String(val));
   if(resp.message&&resp.message.trim())addBot(resp.message);
-  await executeAction(resp.action);
+  await executeActions(resp);
   ensureProgress();
   S.busy=false;setActive(true);
 }
@@ -763,7 +791,7 @@ async function submitEmail(){
   S.busy=true;setActive(false);
   const resp=await callAPI(val);
   if(resp.message&&resp.message.trim())addBot(resp.message);
-  await executeAction(resp.action);
+  await executeActions(resp);
   ensureProgress();
   S.busy=false;setActive(true);
 }
@@ -777,7 +805,7 @@ function handleShowUploadPrompt(){
 
 function handleShowChips(data){
   if(!data?.options?.length)return;
-  showPanel(`<div class="chips">${data.options.map(raw=>{const o=String(raw).replace(/[<>]/g,'');const c=o.trim().length===1;return`<button class="chip${c?' circle':''}" onclick="pickChip(${JSON.stringify(o).replace(/"/g,'&quot;')})">${esc(o)}</button>`;}).join('')}</div>`);
+  showPanel(`<div class="chipbar"><span class="chips-lbl">Select or type&nbsp;·</span><div class="chips">${data.options.map(raw=>{const o=String(raw).replace(/[<>]/g,'');const c=o.trim().length===1;return`<button class="chip${c?' circle':''}" onclick="pickChip(${JSON.stringify(o).replace(/"/g,'&quot;')})">${esc(o)}</button>`;}).join('')}</div></div>`);
 }
 
 async function pickChip(val){
@@ -787,7 +815,7 @@ async function pickChip(val){
   S.busy=true;setActive(false);
   const resp=await callAPI(val);
   if(resp.message&&resp.message.trim())addBot(resp.message);
-  await executeAction(resp.action);
+  await executeActions(resp);
   ensureProgress();
   S.busy=false;setActive(true);
 }
@@ -848,12 +876,17 @@ function handlePrefillMedical(data){
   });
   const allSet=['height','weight','alc','cc','hosp','medic','fhist','haz'].every(f=>S.medExplicit.has(f));
   if(S.activeCard==='med_card'&&allSet){
-    setTimeout(()=>{if(S.activeCard==='med_card'&&!S.busy)submitMed();},300);
+    const trySubmit=()=>{
+      if(S.activeCard!=='med_card')return;
+      if(S.busy){setTimeout(trySubmit,300);return;}
+      submitMed();
+    };
+    setTimeout(trySubmit,300);
   }
 }
 
 let _silentConfirm=false;
-function handleConfirmActiveCard(){
+async function handleConfirmActiveCard(){
   const id=S.activeCard;if(!id)return;
   if(id==='sig_card'){addBot("Please draw your signature on the canvas or type your name below it — I can't do that part for you");return;}
   if(id==='pay_card'){addBot("Please fill in your card details in the panel above to complete payment");return;}
@@ -861,18 +894,26 @@ function handleConfirmActiveCard(){
   if(id==='nom_card'){addBot("Please fill in your nominee details in the panel above — I can't do that part for you");return;}
   if(id==='kyc_card'){addBot("Please complete the details in the panel above — I can't fill those in for you");return;}
   if(id==='info_card'){
-    if(checkInfo()){_silentConfirm=true;submitInfo();}
-    else addBot("I still need a few things — your name, email, date of birth, monthly income, and whether you smoke");
+    if(checkInfo()){_silentConfirm=true;return submitInfo();}
+    else{
+      const miss=[];
+      if(!(S.u.name?.trim().length>=2))miss.push('your name');
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(S.u.email))miss.push('your email');
+      if(!validDOB(S.u.dob))miss.push('your date of birth');
+      if(!(S.u.income>0))miss.push('your monthly income');
+      if(!S.u.smokerConfirmed)miss.push('whether you smoke');
+      addBot("Almost there — I just need "+(miss.join(', ')||"a quick re-confirmation")+" before I can lock things in");
+    }
     return;
   }
   if(id==='med_card'){
-    if(S.medVals.height&&S.medVals.weight){_silentConfirm=true;submitMed();}
+    if(S.medVals.height&&S.medVals.weight){_silentConfirm=true;return submitMed();}
     else addBot("I still need your height and weight to continue");
     return;
   }
   if(id==='ill_card'){const chk=G('ill_chk');if(chk){chk.checked=true;if(G('ill_btn'))G('ill_btn').disabled=false;}}
   const fns={prot_card:acceptProtQ,sav_card:acceptSavQ,inv_card:acceptInvQ,ill_card:agreeIll};
-  if(fns[id]){_silentConfirm=true;fns[id]();}
+  if(fns[id]){_silentConfirm=true;return fns[id]();}
 }
 
 async function handlePassportVerified(){
@@ -881,7 +922,7 @@ async function handlePassportVerified(){
   await delay(400);
   const resp=await callAPI(S.kycDone?'Passport has been verified — please continue the journey':'Passport has been verified — please proceed to KYC collection');
   if(resp.message&&resp.message.trim())addBot(resp.message);
-  await executeAction(resp.action);
+  await executeActions(resp);
   ensureProgress();
 }
 
@@ -899,7 +940,7 @@ async function sendUserMsg(){
   if(hasFile){const file=_attachFile;clearAttachment();resp=await callAPI(text||"I've shared a document — please analyse it",{base64:file.base64,mediaType:file.mediaType});}
   else{resp=await callAPI(text);}
   if(resp.message&&resp.message.trim())addBot(resp.message);
-  await executeAction(resp.action);
+  await executeActions(resp);
   ensureProgress();
   S.busy=false;setActive(true);
 }
@@ -910,11 +951,11 @@ function resizeInp(){inp.style.height='auto';inp.style.height=Math.min(inp.scrol
 // ── Plan selector — chips in panel ──
 function renderPlans(){
   S.activeCard='plan_card';
-  showPanel(`<div class="chips">
+  showPanel(`<div class="chipbar"><span class="chips-lbl">Select or type&nbsp;·</span><div class="chips">
     <button class="chip" onclick="pickPlan('protection')">${ic.shield} Protect my family</button>
     <button class="chip" onclick="pickPlan('investment')">${ic.trending} Grow my wealth</button>
     <button class="chip" onclick="pickPlan('savings')">${ic.savings} Save for a rainy day</button>
-  </div>`);
+  </div></div>`);
 }
 
 async function pickPlan(plan){
@@ -928,7 +969,7 @@ async function pickPlan(plan){
   await delay(400);
   const resp=await callAPI(`Plan selected: ${labels[plan]} — please start collecting my details`);
   if(resp.message&&resp.message.trim())addBot(resp.message);
-  await executeAction(resp.action);
+  await executeActions(resp);
   ensureProgress();
   S.busy=false;setActive(true);
 }
@@ -959,7 +1000,7 @@ async function submitInfo(){
   S.stage='info_collected';S.activeCard=null;S.busy=true;setActive(false);
   if(!wasSilent)addUser(`Name: ${esc(name)} &nbsp;·&nbsp; ${esc(email)}<br>${dob} &nbsp;·&nbsp; ${gender==='male'?'Male':'Female'} &nbsp;·&nbsp; $${income.toLocaleString('en-US')}/mo &nbsp;·&nbsp; ${smoker?'Smoker':'Non-smoker'}`);
   const resp=await callAPI(`Details confirmed — Name="${name}", DOB=${dob} (age ${age}), Gender=${gender}, Income=$${income}/mo, Smoker=${smoker?'yes':'no'}, Plan: ${plan}`);
-  if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);S.busy=false;setActive(true);
+  if(resp.message&&resp.message.trim())addBot(resp.message);await executeActions(resp);S.busy=false;setActive(true);
 }
 
 // ── Protection quote — inline card ──
@@ -978,7 +1019,7 @@ function renderProtQuote(){
     <details class="incl"><summary>What's included</summary>
       <div class="feat">${ic.check} Premium waiver — if you're diagnosed with a terminal illness or become disabled, we take over your remaining premiums and your cover continues uninterrupted</div>
       <div class="feat" style="margin-top:8px">${ic.check} 15-day free look — not happy after purchase? Cancel within 15 days for a full refund, no questions asked</div>
-      <div class="feat" style="margin-top:8px">${ic.check} Hassle-free claims — your nominee simply emails <strong>help@life-guard.com</strong>; every claim is acknowledged within 24 working hours and personally guided through to settlement</div>
+      <div class="feat" style="margin-top:8px">${ic.check}<span>Hassle-free claims — your nominee simply emails <strong>help@life-guard.com</strong>; every claim is acknowledged within 24 working hours and personally guided through to settlement</span></div>
     </details>
     <button class="btn" onclick="acceptProtQ()">This looks good, proceed ${ic.arrow}</button>
   </div>`);
@@ -996,7 +1037,7 @@ async function acceptProtQ(){
   S.q.premium=mp;lockCard('prot_card');S.stage='quote_accepted';S.busy=true;setActive(false);
   if(!wasSilent)addUser(`Protection plan confirmed — ${fmt(cover)} cover, ${term}-year term, ${fmt(mp)}/month`);
   const resp=await callAPI(`I've accepted the Protection Plan — cover: ${fmt(cover)}, term: ${term} years, premium: ${fmt(mp)}/month — please show me the policy illustration`);
-  if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);ensureProgress();S.busy=false;setActive(true);
+  if(resp.message&&resp.message.trim())addBot(resp.message);await executeActions(resp);ensureProgress();S.busy=false;setActive(true);
 }
 
 // ── Savings quote — inline card ──
@@ -1015,7 +1056,7 @@ function renderSavQuote(){
     <details class="incl"><summary>What's included</summary>
       <div class="feat">${ic.check} Premium waiver — if you're diagnosed with a terminal illness or become disabled, we take over your remaining premiums and your cover continues uninterrupted</div>
       <div class="feat" style="margin-top:8px">${ic.check} 15-day free look — not happy after purchase? Cancel within 15 days for a full refund, no questions asked</div>
-      <div class="feat" style="margin-top:8px">${ic.check} Hassle-free claims — your nominee simply emails <strong>help@life-guard.com</strong>; every claim is acknowledged within 24 working hours and personally guided through to settlement</div>
+      <div class="feat" style="margin-top:8px">${ic.check}<span>Hassle-free claims — your nominee simply emails <strong>help@life-guard.com</strong>; every claim is acknowledged within 24 working hours and personally guided through to settlement</span></div>
     </details>
     <button class="btn" onclick="acceptSavQ()">This looks good, proceed ${ic.arrow}</button>
   </div>`);
@@ -1031,7 +1072,7 @@ async function acceptSavQ(){
   lockCard('sav_card');S.stage='quote_accepted';S.busy=true;setActive(false);
   if(!wasSilent)addUser(`Savings plan confirmed — ${fmt(premium)}/month, ${term}-year term`);
   const resp=await callAPI(`I've accepted the savings plan — premium: ${fmt(premium)}/month, term: ${term} years — please show me the illustration`);
-  if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);ensureProgress();S.busy=false;setActive(true);
+  if(resp.message&&resp.message.trim())addBot(resp.message);await executeActions(resp);ensureProgress();S.busy=false;setActive(true);
 }
 
 // ── Investment quote — inline card ──
@@ -1058,7 +1099,7 @@ function renderInvQuote(){
     <details class="incl"><summary>What's included</summary>
       <div class="feat">${ic.check} Premium waiver — if you're diagnosed with a terminal illness or become disabled, we take over your remaining premiums and your cover continues uninterrupted</div>
       <div class="feat" style="margin-top:8px">${ic.check} 15-day free look — not happy after purchase? Cancel within 15 days for a full refund, no questions asked</div>
-      <div class="feat" style="margin-top:8px">${ic.check} Hassle-free claims — your nominee simply emails <strong>help@life-guard.com</strong>; every claim is acknowledged within 24 working hours and personally guided through to settlement</div>
+      <div class="feat" style="margin-top:8px">${ic.check}<span>Hassle-free claims — your nominee simply emails <strong>help@life-guard.com</strong>; every claim is acknowledged within 24 working hours and personally guided through to settlement</span></div>
     </details>
     <button class="btn" onclick="acceptInvQ()">This looks good, proceed ${ic.arrow}</button>
   </div>`);
@@ -1078,7 +1119,7 @@ async function acceptInvQ(){
   lockCard('inv_card');S.stage='quote_accepted';S.busy=true;setActive(false);
   if(!wasSilent)addUser(`Investment plan confirmed — ${fmt(premium)}/month, ${term} yrs, ${FUNDS[fund].label} Fund`);
   const resp=await callAPI(`I've accepted the investment plan — premium: ${fmt(premium)}/month, term: ${term} years, fund: ${FUNDS[fund].label} (${FUNDS[fund].rate}%), projected maturity: ${fmt(mat)} — please show the illustration`);
-  if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);ensureProgress();S.busy=false;setActive(true);
+  if(resp.message&&resp.message.trim())addBot(resp.message);await executeActions(resp);ensureProgress();S.busy=false;setActive(true);
 }
 
 // ── Illustration — inline card ──
@@ -1104,7 +1145,7 @@ async function agreeIll(){
   lockCard('ill_card');S.stage='illustration_agreed';S.busy=true;setActive(false);
   if(!wasSilent)addUser('Policy illustration agreed');
   const resp=await callAPI("I've reviewed and agreed to the policy illustration — please proceed to the medical questionnaire");
-  if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);ensureProgress();S.busy=false;setActive(true);
+  if(resp.message&&resp.message.trim())addBot(resp.message);await executeActions(resp);ensureProgress();S.busy=false;setActive(true);
 }
 
 // ── Medical — panel ──
@@ -1140,7 +1181,7 @@ async function submitHW(){
   S.busy=true;setActive(false);
   const resp=await callAPI(`Height: ${h}cm, Weight: ${w}kg`);
   if(resp.message&&resp.message.trim())addBot(resp.message);
-  await executeAction(resp.action);
+  await executeActions(resp);
   ensureProgress();
   S.busy=false;setActive(true);
 }
@@ -1158,12 +1199,17 @@ async function submitMed(){
     ?(S.kycDone?'the passport has already been verified earlier, so please proceed directly to the signature step':'the passport has already been verified earlier, so please proceed to KYC collection')
     :'please ask the user to share their passport, emit show_upload_prompt so they get an upload button, and reassure them in the same message that it is encrypted in transit, used only to verify their identity, and never stored';
   const resp=await callAPI(`Medical questionnaire complete — ${summary} — ${nextStep}`);
-  if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);
+  if(resp.message&&resp.message.trim())addBot(resp.message);await executeActions(resp);
   ensureProgress();
   S.busy=false;setActive(true);
 }
 
 // ── KYC — panel ──
+const COUNTRIES=["Afghanistan","Albania","Algeria","Andorra","Angola","Antigua and Barbuda","Argentina","Armenia","Australia","Austria","Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan","Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi","Cabo Verde","Cambodia","Cameroon","Canada","Central African Republic","Chad","Chile","China","Colombia","Comoros","Congo","Costa Rica","Croatia","Cuba","Cyprus","Czechia","Democratic Republic of the Congo","Denmark","Djibouti","Dominica","Dominican Republic","Ecuador","Egypt","El Salvador","Equatorial Guinea","Eritrea","Estonia","Eswatini","Ethiopia","Fiji","Finland","France","Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea","Guinea-Bissau","Guyana","Haiti","Honduras","Hungary","Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy","Ivory Coast","Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kiribati","Kuwait","Kyrgyzstan","Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania","Luxembourg","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Marshall Islands","Mauritania","Mauritius","Mexico","Micronesia","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar","Namibia","Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Korea","North Macedonia","Norway","Oman","Pakistan","Palau","Palestine","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal","Qatar","Romania","Russia","Rwanda","Saint Kitts and Nevis","Saint Lucia","Saint Vincent and the Grenadines","Samoa","San Marino","Sao Tome and Principe","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands","Somalia","South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland","Syria","Taiwan","Tajikistan","Tanzania","Thailand","Timor-Leste","Togo","Tonga","Trinidad and Tobago","Tunisia","Turkey","Turkmenistan","Tuvalu","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Uruguay","Uzbekistan","Vanuatu","Vatican City","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe"];
+function countrySelect(id,label,val){
+  const v=(val||'').trim().toLowerCase();
+  return `<select class="fi" id="${id}" required onchange="checkKyc()"><option value="">${label}</option>${COUNTRIES.map(c=>`<option${c.toLowerCase()===v?' selected':''}>${c}</option>`).join('')}</select>`;
+}
 function renderKyc(){
   if(G('kyc_house'))return;
   if(['signed','paid','nominee_done','completed'].includes(S.stage))return;
@@ -1171,11 +1217,11 @@ function renderKyc(){
   const k=S.kyc;
   showPanel(`<div class="pnl">
     <div class="flds">
-      <input class="fi" id="kyc_nat" type="text" placeholder="Nationality" value="${esc(k.nationality)}" oninput="checkKyc()">
+      ${countrySelect('kyc_nat','Nationality',k.nationality)}
       <input class="fi" id="kyc_house" type="text" placeholder="House / flat number" value="${esc(k.house)}" oninput="checkKyc()">
       <input class="fi" id="kyc_street" type="text" placeholder="Street name" value="${esc(k.street)}" oninput="checkKyc()">
       <input class="fi" id="kyc_city" type="text" placeholder="City" value="${esc(k.city)}" oninput="checkKyc()">
-      <input class="fi" id="kyc_country" type="text" placeholder="Country of residence" value="${esc(k.country)}" oninput="checkKyc()">
+      ${countrySelect('kyc_country','Country of residence',k.country)}
     </div>
     <label class="decl" style="margin:12px 0 0"><input type="checkbox" id="kyc_pep"${k.pep?' checked':''}> I am a politically exposed person (PEP), or an immediate family member or close associate of one</label>
     <div class="phi" style="margin-top:8px;margin-bottom:2px">${ic.lock} Required for identity and AML verification</div>
@@ -1198,7 +1244,7 @@ async function submitKyc(){
   addUser(`Nationality: ${esc(k.nationality)} &nbsp;·&nbsp; PEP: ${k.pep?'Yes':'No'}<br>${esc(k.house)} ${esc(k.street)}, ${esc(k.city)}, ${esc(k.country)}`);
   const resp=await callAPI(`KYC details confirmed — Nationality: ${k.nationality}, PEP: ${k.pep?'yes':'no'}, Address: ${k.house} ${k.street}, ${k.city}, ${k.country} — ${k.pep?'the user has declared PEP status, so acknowledge neutrally that enhanced due diligence may apply and the application may need additional review, then':'please'} proceed to the signature step`);
   if(resp.message&&resp.message.trim())addBot(resp.message);
-  await executeAction(resp.action);
+  await executeActions(resp);
   ensureProgress();
   S.busy=false;setActive(true);
 }
@@ -1297,7 +1343,7 @@ async function submitPay(fmtAmt){
   hidePanel();S.stage='paid';S.busy=true;setActive(false);
   addUser(`Payment of ${fmtAmt} processed`);
   const resp=await callAPI(`Payment was successful — please show the nominee collection screen now`);
-  if(resp.message&&resp.message.trim())addBot(resp.message);await executeAction(resp.action);ensureProgress();S.busy=false;setActive(true);
+  if(resp.message&&resp.message.trim())addBot(resp.message);await executeActions(resp);ensureProgress();S.busy=false;setActive(true);
 }
 
 // ── Nominees — panel ──
@@ -1331,8 +1377,8 @@ function addNomRow(initPct){
   row.innerHTML=`
     <input class="fi" id="nom_n_${i}" type="text" placeholder="Nominee full name" oninput="checkNoms()">
     <div class="nom-spl">
-      <div style="flex:1"><select class="fi" id="nom_r_${i}" onchange="checkNoms()">
-        <option value="">Relationship</option>
+      <div style="flex:1"><select class="fi" id="nom_r_${i}" required onchange="checkNoms()">
+        <option value="">Tap to select...</option>
         <option>Spouse</option><option>Child</option><option>Parent</option><option>Sibling</option><option>Other</option>
       </select></div>
       <div class="nom-pct">
