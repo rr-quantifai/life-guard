@@ -198,7 +198,7 @@ select.fi:invalid{color:var(--t3)}
 .feats-hd{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ad);margin:24px 0 8px}
 .nfeat{display:flex;gap:9px;align-items:flex-start;padding:9px 0;font-size:12px;color:var(--t2);line-height:1.55}
 .nfeat:last-child{padding-bottom:0}
-.nfeat-dot{width:18px;height:18px;border-radius:50%;background:var(--aa);border:1px solid rgba(11,175,136,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;color:var(--a)}
+.nfeat-dot{width:14px;height:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;color:var(--a)}
 .nfeat strong{font-weight:600;color:var(--tx)}
 </style>
 </head>
@@ -1193,7 +1193,7 @@ function renderProtQuote(){
     <div class="feats-hd">What's included</div>
     <div class="nfeat"><div class="nfeat-dot">${ic.check}</div><div><strong>Premium waiver</strong> — terminal illness or disability? We take over your remaining premiums and your cover continues uninterrupted</div></div>
     <div class="nfeat"><div class="nfeat-dot">${ic.check}</div><div><strong>15-day free look</strong> — not happy after purchase? Cancel within 15 days for a full refund, no questions asked</div></div>
-    <div class="nfeat"><div class="nfeat-dot">${ic.check}</div><div><strong>Hassle-free claims</strong> — your nominee simply emails <strong>help@life-guard.com</strong>; every claim is acknowledged within 24 working hours and personally guided through to settlement</div></div>
+    <div class="nfeat"><div class="nfeat-dot">${ic.check}</div><div><strong>Hassle-free claims</strong> — your nominee simply emails <strong>help@life-guard.netlify.app</strong>; every claim is acknowledged within 24 working hours and personally guided through to settlement</div></div>
     <button class="btn" onclick="acceptProtQ()">This looks good, proceed ${ic.arrow}</button>
   </div>`);
 }
@@ -1238,7 +1238,7 @@ function renderSavQuote(){
     <div class="feats-hd">What's included</div>
     <div class="nfeat"><div class="nfeat-dot">${ic.check}</div><div><strong>Premium waiver</strong> — terminal illness or disability? We take over your remaining premiums and your cover continues uninterrupted</div></div>
     <div class="nfeat"><div class="nfeat-dot">${ic.check}</div><div><strong>15-day free look</strong> — not happy after purchase? Cancel within 15 days for a full refund, no questions asked</div></div>
-    <div class="nfeat"><div class="nfeat-dot">${ic.check}</div><div><strong>Hassle-free claims</strong> — your nominee simply emails <strong>help@life-guard.com</strong>; every claim is acknowledged within 24 working hours and personally guided through to settlement</div></div>
+    <div class="nfeat"><div class="nfeat-dot">${ic.check}</div><div><strong>Hassle-free claims</strong> — your nominee simply emails <strong>help@life-guard.netlify.app</strong>; every claim is acknowledged within 24 working hours and personally guided through to settlement</div></div>
     <button class="btn" onclick="acceptSavQ()">This looks good, proceed ${ic.arrow}</button>
   </div>`);
 }
@@ -1301,7 +1301,7 @@ function renderInvQuote(){
     <div class="feats-hd">What's included</div>
     <div class="nfeat"><div class="nfeat-dot">${ic.check}</div><div><strong>Premium waiver</strong> — terminal illness or disability? We take over your remaining premiums and your cover continues uninterrupted</div></div>
     <div class="nfeat"><div class="nfeat-dot">${ic.check}</div><div><strong>15-day free look</strong> — not happy after purchase? Cancel within 15 days for a full refund, no questions asked</div></div>
-    <div class="nfeat"><div class="nfeat-dot">${ic.check}</div><div><strong>Hassle-free claims</strong> — your nominee simply emails <strong>help@life-guard.com</strong>; every claim is acknowledged within 24 working hours and personally guided through to settlement</div></div>
+    <div class="nfeat"><div class="nfeat-dot">${ic.check}</div><div><strong>Hassle-free claims</strong> — your nominee simply emails <strong>help@life-guard.netlify.app</strong>; every claim is acknowledged within 24 working hours and personally guided through to settlement</div></div>
     <button class="btn" onclick="acceptInvQ()">This looks good, proceed ${ic.arrow}</button>
   </div>`);
 }
@@ -1656,7 +1656,7 @@ function renderConfirmation(){
     ?'\n\nYour '+(S.nominees.length===1?'beneficiary':'beneficiaries')+': '+S.nominees.map(n=>`${n.name} (${n.relationship}) — ${n.share}%`).join(' · ')
     :'';
   const ref='LG-'+Date.now().toString(36).toUpperCase().slice(-6);
-addBot(`You're all set, ${first}! 🎉 Your reference number is ${ref}\n\nYou've done the second most important thing by purchasing a life insurance policy — what comes first is staying healthy so your family and loved ones never have to use it${nomList}\n\nYou'll receive your policy copy within the next 24 hours at ${S.u.email}\n\nYou can also reach us at help@life-guard.com — please use the same email address as on your application so we can identify you faster`);  
+addBot(`You're all set, ${first}! 🎉 Your reference number is ${ref}\n\nYou've done the second most important thing by purchasing a life insurance policy — what comes first is staying healthy so your family and loved ones never have to use it${nomList}\n\nYou'll receive your policy copy within the next 24 hours at ${S.u.email}\n\nYou can also reach us at help@life-guard.netlify.app — please use the same email address as on your application so we can identify you faster`);  
   S.stage='completed';inp.placeholder='Your application is being processed — do you have any other questions?';
 }
 
@@ -1682,7 +1682,9 @@ function performEditRollback(targetRow){
 
 function cancelEdit(){
   if(window._editingRow){window._editingRow.classList.remove('editing');window._editingRow=null;}
-  hidePanel();
+  if(window._prevPanel?.visible){showPanel(window._prevPanel.html);window._lastChipData=window._prevPanel.chipData;}
+  else hidePanel();
+  window._prevPanel=null;
 }
 
 function openEditPopup(row){
@@ -1706,6 +1708,7 @@ function openEditPopup(row){
   if(type==='kyc'){performEditRollback(row);renderKyc();return;}
   if(type==='nominee'){performEditRollback(row);renderNominee();if(S.nominees?.length)handlePrefillNominee(S.nominees);return;}
 
+  window._prevPanel={html:G('panel').innerHTML,visible:G('panel').style.display!=='none',chipData:window._lastChipData};
   window._editingRow=row;
   row.classList.add('editing');
 
