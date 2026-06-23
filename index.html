@@ -676,7 +676,7 @@ async function callAPI(userMsg,imgData=null){
     S.conv.pop();
     window._lastFailed={msg:userMsg,img:imgData};
     showPanel(`<div class="chipbar"><div class="chips"><button class="chip" onclick="retryLast()">&#8635; Retry</button></div></div>`);
-    return{message:"I'm having a little trouble connecting — tap Retry below and we'll pick up exactly where we left off",action:{type:'none'}};
+    return{message:"I'm having a little trouble connecting — tap retry below and we'll pick up exactly where we left off",action:{type:'none'}};
   }
   finally{showTyping(false);}
 }
